@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>党员发展积分管理系统 · 国际交流学院</title>
 <script src="xlsx.full.min.js"></script>
-<link rel="stylesheet" href="style.css?v=category-drawer-27">
+<link rel="stylesheet" href="style.css?v=ai-review-28">
 </head>
 <body>
 <div class="topbar">
@@ -41,6 +41,7 @@
   <div class="up-box" id="dropZone">
     <div class="up-box-title">📤 上传信息收集表</div>
     <input type="file" id="fileInput" accept=".xlsx,.xls">
+<label class="ai-import-toggle"><input type="checkbox" id="useAiImport"> 使用AI辅助分析，先核对再导入</label><div class="ai-connection"><button type="button" class="btn btn-s" id="checkAiImport">检查AI连接</button><span id="aiConnectionStatus">AI需先完成后台配置；规则识别仍可使用。</span></div>
     <button class="btn btn-p" id="btnProcess" disabled style="width:100%;margin-top:8px">开始处理</button>
     <div id="uploadMsg" style="margin-top:6px;font-size:12px"></div>
 <p class="workflow-upload-note">导入前核对重复人员，选择录入批次；保留历史人员。</p>
@@ -309,12 +310,14 @@
 <div id="exportDetailConfirm" class="list-delete-popover" popover="auto" role="alertdialog" aria-label="确认导出个人明细"></div>
 <div id="listDeleteConfirm" class="list-delete-popover" popover="auto" role="alertdialog" aria-label="确认删除发展名单"></div>
 <script src="cloudbase.full.js"></script>
-<script src="batch-core.js?v=joined-materials-26"></script>
+<script src="batch-core.js?v=ai-review-28"></script>
 <script src="development-lists.js?v=roster-flow-23"></script>
 <script src="admin-core.js?v=development-lists-20"></script>
 <script src="cloud-sync.js?v=workflow-1"></script>
-<script src="app.js?v=category-drawer-27"></script>
-<script src="batches.js?v=roster-flow-23"></script>
+<script src="ai-import-core.js?v=ai-review-28"></script>
+<script src="ai-import-plan.js?v=ai-review-28"></script>
+<script src="app.js?v=ai-review-28"></script>
+<script src="batches.js?v=ai-review-28"></script>
 <section id="workspaceRecycle" class="hide"></section><section id="workspaceAudit" class="hide"></section>
 <script src="workspace.js?v=roster-flow-23"></script>
 <script src="saved-scores.js?v=roster-flow-23"></script>
@@ -325,5 +328,6 @@
 document.getElementById('btnMore').addEventListener('click',function(e){e.stopPropagation();document.getElementById('topbarMoreMenu').classList.toggle('open');});
 document.addEventListener('click',function(e){if(!e.target.closest('.topbar-more'))document.getElementById('topbarMoreMenu').classList.remove('open');});
 </script>
+<script src="ai-import.js?v=ai-review-28"></script>
 </body>
 </html>

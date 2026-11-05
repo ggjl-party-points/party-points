@@ -144,7 +144,8 @@
     }
     show();if(!dialog.open)dialog.showModal();byId('materialReviewClose').onclick=function(){dialog.close();};
   }
-  function previewImport(rows,source){
+  function previewImport(rows,source,aiReview){
+    if(aiReview&&window.AiImportPlan){try{AiImportPlan.assertCurrent(aiReview,APP);}catch(e){toast(e.message,'err');return;}}
     if(CLOUD_ENABLED&&!_cloudKey){toast('请先登录管理员账号。','err');return;}
     ensure();APP.members.forEach(_captureManualItems);previewPlan=C.planImport(APP,rows);importSource=source||'手动录入';
     var p=previewPlan,c=p.counts;
@@ -160,7 +161,8 @@
     byId('importBatch').onchange=function(){byId('importBatchNameWrap').classList.toggle('hide',!!this.value);};
     byId('cancelWorkflowImport').onclick=closeDialog;
     byId('commitWorkflowImport').onclick=function(){
-      try{if(_cloudConflict)throw new Error('云端存在新版本，请先处理保存冲突。');var result=C.applyImport(APP,previewPlan,{batchId:byId('importBatch').value,batchName:byId('importBatchName').value,skipConflicts:!!(byId('skipImportConflicts')&&byId('skipImportConflicts').checked)});
+      try{if(_cloudConflict)throw new Error('云端存在新版本，请先处理保存冲突。');if(aiReview)AiImportPlan.assertCurrent(aiReview,APP);var destination=aiReview?C.clone(APP):APP;var result=C.applyImport(destination,previewPlan,{batchId:byId('importBatch').value,batchName:byId('importBatchName').value,skipConflicts:!!(byId('skipImportConflicts')&&byId('skipImportConflicts').checked)});
+        if(aiReview){AiImportPlan.apply(destination,aiReview,result);if(CLOUD_ENABLED&&new TextEncoder().encode(JSON.stringify(destination)).length>700000)throw Error('AI确认记录使数据接近云端容量上限，已停止导入且未修改现有人员；请先联系维护人员处理存储容量。');APP=destination;R=APP.rules;}
         importReceipt=result;APP.screeningDraft.listId='';closeDialog();filters={q:'',batch:'',review:'',min:'',max:'',selectedOnly:false,className:'',listScope:''};_writeLocal();svNow();open();if(window.AdminWorkspace)window.AdminWorkspace.navigate('screening');toast('导入完成。本次导入人员已勾选，可切到全部成员中继续勾选老同学。');
       }catch(e){alert(e.message);}
     };
@@ -169,7 +171,7 @@
     setProcessLoading(true);
     try{var bytes=await file.arrayBuffer(),wb=XLSX.read(new Uint8Array(bytes),{type:'array'}),sheet=wb.Sheets[wb.SheetNames[0]];
       // Read identifiers as displayed text, preserving explicit text/zero-padding.
-      var rows=XLSX.utils.sheet_to_json(sheet,{defval:'',raw:false});previewImport(rows,file.name);
+      var rows=XLSX.utils.sheet_to_json(sheet,{defval:'',raw:false});if(byId('useAiImport')&&byId('useAiImport').checked&&window.AiImport){AiImport.open(rows,file.name);return;}previewImport(rows,file.name);
     }catch(e){toast('读取失败：'+e.message,'err');}finally{setProcessLoading(false);}
   }
   function addMember(){

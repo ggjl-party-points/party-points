@@ -69,7 +69,7 @@
     normalized.forEach(function(r,i){
       if(r['姓名']===text('张三（填写示例，请删除或替换）'))return;
       if(!r['姓名']&&!r['班级']&&!studentId(r))return;
-      var e={row:typeof rows[i].__rowNum__==='number'?rows[i].__rowNum__+1:i+2,data:r,status:'new',reason:'新增人员',targetId:null,changes:[]};
+      var e={sourceIndex:i,row:typeof rows[i].__rowNum__==='number'?rows[i].__rowNum__+1:i+2,data:r,status:'new',reason:'新增人员',targetId:null,changes:[]};
       function conflict(reason){e.status='conflict';e.reason=reason;entries.push(e);}
       if(!r['姓名']||!r['班级']){conflict('缺少姓名或班级，请补齐后重新导入。');return;}
       var sid=studentId(r),pair=r['姓名']+'\u0000'+r['班级'];
@@ -97,17 +97,17 @@
     var batch,now=options.now||new Date().toISOString();
     if(options.batchId){batch=state.batches.find(function(b){return b.id===options.batchId;});if(!batch)throw new Error('所选批次不存在。');}
     else{var name=text(options.batchName);if(!name)throw new Error('请填写批次名称。');if(state.batches.some(function(b){return text(b.name)===name;}))throw new Error('已有同名批次，请选择已有批次或修改名称。');batch={id:id('batch'),name:name,createdAt:now};}
-    var next=clone(state.members),imported=[];
+    var next=clone(state.members),imported=[],rowMemberIds={};
     usable.forEach(function(e){
       var index=e.targetId?next.findIndex(function(m){return m._memberId===e.targetId;}):-1,m;
       if(e.targetId&&index<0)throw new Error('待更新人员已经不存在，请重新预览。');
       if(index>=0){m=mergeMember(next[index],e.data,e.materialReview);next[index]=m;}
       else{m=mergeMember({},e.data,e.materialReview);m._memberId=id('person');m._batchIds=[];m._ok=null;m._cl=null;m._unc=null;next.push(m);}
-      m._batchIds=Array.from(new Set((m._batchIds||[]).concat(batch.id)));m._updatedAt=now;imported.push(m._memberId);
+      m._batchIds=Array.from(new Set((m._batchIds||[]).concat(batch.id)));m._updatedAt=now;imported.push(m._memberId);rowMemberIds[e.sourceIndex]=m._memberId;
     });
     if(!options.batchId)state.batches.push(batch);state.members=next;
     state.screeningDraft.selectedIds=Array.from(new Set(imported));state.screeningDraft.name=batch.name+'汇总筛选';state.screeningDraft.period=options.period||'';
-    return{batch:batch,memberIds:state.screeningDraft.selectedIds.slice(),counts:clone(plan.counts)};
+    return{batch:batch,memberIds:state.screeningDraft.selectedIds.slice(),counts:clone(plan.counts),rowMemberIds:rowMemberIds};
   }
   function batchNames(state,m){return(m._batchIds||[]).map(function(bid){var b=state.batches.find(function(b){return b.id===bid;});return b?b.name:'未知批次';}).join('、');}
   function rankRows(rows){
