@@ -18,7 +18,7 @@
   }
   var queue=null,committing=false;
   var originalClose=window.closeModal;
-  window.closeModal=function(){originalClose();if(!committing)queue=null;};
+  window.closeModal=function(){var closed=originalClose();if(closed===false)return false;if(!committing)queue=null;return closed;};
   function next(){
     if(!queue)return;
     while(queue.cursor<queue.items.length){
@@ -30,12 +30,12 @@
       var bar=document.createElement('div');bar.className='continuous-review-bar';
       bar.innerHTML='<strong>连续审核 · '+safe(m['姓名'])+' · '+safe(m['班级'])+'</strong><p>第 '+(queue.cursor+1)+' / '+queue.items.length+' 项 · 本次已确认 '+queue.done+' 项 · 跳过 '+queue.skipped+' 项</p><div class="workflow-actions"><button type="button" class="btn" id="reviewSkip">暂时跳过</button><button type="button" class="btn btn-g" id="reviewStop">结束连续审核</button></div>';
       el('modalBox').insertBefore(bar,el('modalBox').firstChild);
-      el('reviewSkip').onclick=function(){queue.skipped++;queue.cursor++;next();};
-      el('reviewStop').onclick=function(){closeModal();AdminWorkspace.navigate('review');};
+      el('reviewSkip').onclick=function(){if(!canDiscardModalDraft())return;queue.skipped++;queue.cursor++;next();};
+      el('reviewStop').onclick=function(){if(closeModal()!==false)AdminWorkspace.navigate('review');};
       var confirm=el('btnFix'),save=confirm.onclick;confirm.textContent='确认并继续下一项';
       confirm.onclick=function(){
         if(!canWrite())return;
-        committing=true;try{save();svNow();queue.done++;queue.cursor++;}finally{committing=false;}
+        committing=true;try{if(save()===false)return;svNow();queue.done++;queue.cursor++;}finally{committing=false;}
         next();
       };return;
     }
