@@ -1,8 +1,8 @@
 (function(){
   'use strict';
-  var C=window.BatchCore,current='dashboard',routing=false,peopleQuery='',peopleClass='';
+  var C=window.BatchCore,current='dashboard',routing=false,peopleQuery='',peopleClass='',peopleScope='';
   var initialNavToggle=document.getElementById('workspaceNavToggle');
-  var pages={dashboard:'工作台',import:'资料导入',members:'人员与积分',screening:'批次与筛选',review:'待审核材料',summary:'全部积分汇总',history:'历史筛选结果',criteria:'评分标准',backup:'备份与恢复',recycle:'人员回收站',audit:'修改记录'};
+  var pages={dashboard:'工作台',import:'资料导入',members:'人员与积分',screening:'发展名单',review:'待审核材料',summary:'名单积分汇总',history:'历史筛选结果',criteria:'评分标准',backup:'备份与恢复',recycle:'人员回收站',audit:'修改记录'};
   var panelIds=['workspaceDashboard','workspaceImport','workspaceMembers','workspaceReview','workspaceCriteria','workspaceBackup','workspaceRecycle','workspaceAudit','workflowView','viewSummary'];
   function el(id){return document.getElementById(id);}
   function safe(v){return esc(v==null?'':String(v));}
@@ -68,7 +68,7 @@
       ['import','01','导入或补充资料','上传信息收集表，新增同学或更新老同学材料。','开始导入'],
       ['members','02','人员与积分','查找学生，查看分项明细、补学号或移除人员。','查看人员'],
       ['review','03','核对待审核材料','确认系统无法确定的奖项级别、类别和职务。','去核对'],
-      ['screening','04','新老同学汇总筛选','选择新批次，再勾选老同学，生成统一名单。','开始筛选'],
+      ['screening','04','新老同学汇总筛选','从全部成员勾选，保存年度发展名单；下次可直接沿用。','开始筛选'],
       ['history','05','历史筛选结果','查看和导出当时留存的名单、分数及评分依据。','查看历史'],
       ['backup','06','备份与恢复','保存完整资料副本，必要时恢复工作数据。','管理备份']
     ];
@@ -87,7 +87,7 @@
     var count=0,q=peopleQuery.toLowerCase();
     el('memberList').querySelectorAll('.mitem').forEach(function(row){
       var index=Number(row.getAttribute('data-mi')),m=APP.members[index];
-      var show=!!m&&(!peopleClass||String(m['班级']||'')===peopleClass)&&(!q||[m['姓名'],m['班级'],m['学号']].join(' ').toLowerCase().indexOf(q)>=0);
+      var show=!!m&&(!peopleScope||APP.developmentLists.some(function(l){return l.id===peopleScope&&l.memberIds.indexOf(m._memberId)>=0;}))&&(!peopleClass||String(m['班级']||'')===peopleClass)&&(!q||[m['姓名'],m['班级'],m['学号']].join(' ').toLowerCase().indexOf(q)>=0);
       row.style.display=show?'':'none';if(show)count++;
       row.onmouseenter=null;row.onmouseleave=null;
     });
@@ -95,6 +95,9 @@
     el('memberSearchEmpty').classList.toggle('hide',count>0||APP.members.length===0);
   }
   function syncPeopleFilters(){
+    DevelopmentLists.ensure(APP);if(peopleScope&&!APP.developmentLists.some(function(l){return l.id===peopleScope;}))peopleScope='';
+    el('memberListScope').innerHTML='<option value="">全部成员</option>'+DevelopmentLists.ordered(APP).map(function(l){return '<option value="'+safe(l.id)+'">'+safe(l.name)+'</option>';}).join('');el('memberListScope').value=peopleScope;
+
     var classes=Array.from(new Set(APP.members.map(function(m){return String(m['班级']||'');}).filter(Boolean))).sort(function(a,b){return a.localeCompare(b,'zh-CN');});
     if(peopleClass&&classes.indexOf(peopleClass)<0)peopleClass='';
     el('memberClassFilter').innerHTML='<option value="">全部班级</option>'+classes.map(function(cls){return '<option value="'+safe(cls)+'">'+safe(cls)+'</option>';}).join('');
@@ -106,7 +109,7 @@
   function personOverview(){
     if(!APP.members.length)return;
     var m=APP.members[APP.curIdx]||APP.members[0];classifyMember(m);var fin=calc(m,!!APP.coef);
-    el('personProfileMeta').textContent='学号：'+(m['学号']||'尚未补充')+' · 批次：'+C.batchNames(APP,m)+(APP.coef?' · 当前采用前期×0.6系数':'');
+    el('personProfileMeta').textContent='学号：'+(m['学号']||'尚未补充')+' · 导入记录：'+C.batchNames(APP,m)+(APP.coef?' · 当前采用前期×0.6系数':'');
     var count=(m._unc||[]).length;el('personReviewStatus').textContent=count?count+' 项材料待审核':'无待审核项';el('personReviewStatus').dataset.state=count?'pending':'ready';
     var groups=[{key:'ac',name:'学业能力',names:AC,values:fin.ac,total:fin.acT,cap:R.acCap,offset:0},{key:'pt',name:'党性成长',names:PS,values:fin.pt,total:fin.ptT,cap:R.ptCap,offset:6},{key:'dc',name:'纪律约束',names:DS,values:fin.dc,total:fin.dcT,cap:null,offset:12}];
     el('personOverviewGroups').innerHTML=groups.map(function(g){
@@ -136,7 +139,7 @@
       if(page!=='screening'&&page!=='history'&&AppWorkflow.isOpen())AppWorkflow.close();
       el('panelCriteria').classList.add('hide');
       if(page==='members'){window.render();switchMainTab('overview');}
-      else if(page==='summary'){renderSummaryTable();el('btnExport').textContent='导出全部汇总';}
+      else if(page==='summary'){if(window.SavedScores)SavedScores.enter();else renderSummaryTable();el('btnExport').textContent='导出保存的名单结果';}
       else if(page==='criteria'){renderCriteria();}
       else if(page==='screening'||page==='history'){openWorkflow();}
       refresh();el('mainContent').scrollTop=0;
@@ -148,6 +151,7 @@
     panel.animate([{opacity:.65},{opacity:1}],{duration:170,easing:'ease-out'});
   }
   el('searchMember').addEventListener('input',function(){peopleQuery=this.value.trim();applyPeopleFilter();});
+  el('memberListScope').onchange=function(){peopleScope=this.value;applyPeopleFilter();};
   el('memberClassFilter').onchange=function(){peopleClass=this.value;applyPeopleFilter();};
   var previousSwitchTab=window.switchMainTab;window.switchMainTab=function(tab){previousSwitchTab(tab);syncPersonTabs();animatePanel(el(tab==='overview'?'panelOverview':tab==='detail'?'panelDetail':'panelUncertain'));};
   var previousRender=window.render;window.render=function(){previousRender();if(!routing)refresh();};

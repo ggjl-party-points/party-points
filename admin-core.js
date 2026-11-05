@@ -19,7 +19,7 @@
     var out={};Object.keys(m).sort().forEach(function(k){if(k[0]!=='_')out[k]=m[k];});
     out['人工计分']=clone(m._manualItems||[]);return out;
   }
-  function snapshot(s){ensure(s);return {members:s.members.map(function(m){return{id:m._memberId,data:person(m)};}),bin:s.recycleBin.map(function(r){return{id:r.id,mid:r.member._memberId,name:r.member['姓名']};}),rules:clone(s.rules)};}
+  function snapshot(s){ensure(s);return {members:s.members.map(function(m){return{id:m._memberId,data:person(m)};}),bin:s.recycleBin.map(function(r){return{id:r.id,mid:r.member._memberId,name:r.member['姓名']};}),rules:clone(s.rules),lists:clone(s.developmentLists||[])};}
   function changes(before,after){var keys=Array.from(new Set(Object.keys(before).concat(Object.keys(after))));return keys.filter(function(k){return JSON.stringify(before[k])!==JSON.stringify(after[k]);}).map(function(k){return{field:k,before:before[k]==null?'':before[k],after:after[k]==null?'':after[k]};});}
   function record(s,previous){
     ensure(s);var next=snapshot(s);if(!previous)return next;
@@ -27,6 +27,8 @@
     next.members.forEach(function(m){var old=previous.members.find(function(x){return x.id===m.id;});if(!old){add(previous.bin.some(function(r){return r.mid===m.id;})?'恢复人员':'新增人员',m.id,m.data['姓名'],changes({},m.data));}else{var diff=changes(old.data,m.data);if(diff.length)add('修改资料或积分',m.id,m.data['姓名'],diff);}});
     previous.members.forEach(function(m){if(!next.members.some(function(x){return x.id===m.id;}))add(next.bin.some(function(r){return r.mid===m.id;})?'移入回收站':'移除人员',m.id,m.data['姓名'],[]);});
     previous.bin.forEach(function(r){if(!next.bin.some(function(x){return x.id===r.id;})&&!next.members.some(function(m){return m.id===r.mid;}))add('永久删除人员',r.mid,r.name,[]);});
+    (next.lists||[]).forEach(function(l){var old=(previous.lists||[]).find(function(x){return x.id===l.id;});if(!old)add('新建发展名单','',l.name,[{field:'名单成员',before:[],after:l.memberIds}]);else{var delta=changes(old,l);if(delta.length)add('修改发展名单','',l.name,delta);}});
+    (previous.lists||[]).forEach(function(l){if(!(next.lists||[]).some(function(x){return x.id===l.id;}))add('删除发展名单','',l.name,[]);});
     var diff=changes(previous.rules,next.rules);if(diff.length)add('修改评分规则','','',diff);
     if(s.auditLog.length>500)s.auditLog=s.auditLog.slice(-500);
     return next;

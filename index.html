@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>党员发展积分管理系统 · 国际交流学院</title>
 <script src="xlsx.full.min.js"></script>
-<link rel="stylesheet" href="style.css?v=rules-reference-19">
+<link rel="stylesheet" href="style.css?v=return-layout-24">
 </head>
 <body>
 <div class="topbar">
@@ -15,7 +15,7 @@
     <button type="button" class="topbar-unc hide" id="globalUncBadge" title="点击查看不确定项">待处理 0 项</button>
     <button type="button" id="scoringRulesLink" class="btn btn-o" aria-haspopup="dialog" aria-controls="scoringRulesDialog">评分细则</button>
     <button type="button" id="adminManualLink" class="btn btn-o admin-manual-link" aria-haspopup="dialog" aria-controls="adminManualDialog">操作手册</button>
-    <button class="btn btn-o" id="btnWorkflow">批次与汇总筛选</button>
+    <button class="btn btn-o" id="btnWorkflow">发展名单</button>
     <button class="btn btn-o" id="btnExport">📤 导出汇总</button>
     <span class="export-hint hide" id="exportHint"></span>
     <button class="btn btn-p" id="btnSaveAll" title="手动提交保存或在普通保存失败后重试；是否成功以顶部云端状态为准">💾 保存</button>
@@ -53,6 +53,7 @@
   <label for="foldMembers" class="sidebar-fold-label">选择学生 <span class="count" id="sideCount">0</span></label>
   <div class="sidebar-collapsible">
   <input type="text" class="search" id="searchMember" placeholder="搜索姓名、班级或学号">
+  <select id="memberListScope" class="people-class-filter" aria-label="按发展名单查看学生"><option value="">全部成员</option></select>
   <select id="memberClassFilter" class="people-class-filter" aria-label="按班级筛选"><option value="">全部班级</option></select>
   <div class="people-list-meta" id="memberListMeta"></div>
   <div class="mlist" id="memberList"><div class="list-empty">暂无成员</div></div>
@@ -68,7 +69,7 @@
 </div>
 <div class="main" id="mainContent">
 <div class="page-shell">
-<div id="workspaceRoutebar" class="workspace-routebar"></div>
+<div class="workspace-route-row"><div id="workspaceRoutebar" class="workspace-routebar"></div><button class="context-return hide" id="returnToRoster" type="button">返回刚才的发展名单</button></div><p id="personalSavedContext" class="hide personal-saved-context"></p>
 <details id="workspaceSaveGuide" class="workspace-save-guide">
   <summary>保存说明：日常修改会自动保存，关闭页面前请确认顶部显示“已保存到云端”。</summary>
   <div class="workspace-save-guide-body">
@@ -103,7 +104,7 @@
 <div class="main-content hide" id="viewPersonal">
 <div class="member-header person-profile">
   <div class="person-profile-identity"><span class="person-profile-kicker">学生档案</span><div class="person-profile-name"><span class="mh-name" id="mhName">—</span><span class="mh-class" id="mhClass">—</span></div><p id="personProfileMeta" class="person-profile-meta"></p><span id="personReviewStatus" class="person-review-status"></span></div>
-  <div class="person-profile-actions"><button class="btn btn-p" id="btnExportDetail">导出明细</button><details class="person-more-actions"><summary>更多操作</summary><div class="person-more-menu"><button class="btn" id="btnShowSummary">查看全部积分汇总</button><label><input type="checkbox" id="coefCb"> 采用前期 ×0.6 系数</label><button class="btn btn-d" id="workspaceRemoveMember">移入人员回收站</button></div></details></div>
+  <div class="person-profile-actions"><button class="btn btn-p" id="btnExportDetail">导出明细</button><details class="person-more-actions"><summary>更多操作</summary><div class="person-more-menu"><button class="btn" id="btnShowSummary">查看名单积分汇总</button><label><input type="checkbox" id="coefCb"> 采用前期 ×0.6 系数</label><button class="btn btn-d" id="workspaceRemoveMember">移入人员回收站</button></div></details></div>
 </div>
 <div class="score-section" id="scoreSection">
 <div class="cards" id="scoreCards">
@@ -163,14 +164,14 @@
 <dialog id="adminManualDialog" class="manual-dialog" aria-labelledby="manualDialogTitle"><header class="manual-dialog-header"><div><span>使用帮助</span><h2 id="manualDialogTitle">管理员操作手册</h2></div><div class="manual-header-actions"><a class="btn" href="https://my.feishu.cn/wiki/MRu5wR9DWizjAmkHzUCceWjJnpd" target="_blank" rel="noopener noreferrer">飞书原文 ↗</a><button type="button" id="manualDialogClose" class="btn" aria-label="关闭操作手册" title="关闭操作手册">×</button></div></header><div class="manual-dialog-body"><nav class="manual-toc" aria-label="操作手册目录"><button type="button" data-manual-target="manualIntro">01 快速上手</button><button type="button" data-manual-target="manualChapter1">02 登录与保存</button><button type="button" data-manual-target="manualChapter2">03 导入新同学和补充旧资料</button><button type="button" data-manual-target="manualChapter3">04 查看积分和人工审核</button><button type="button" data-manual-target="manualChapter4">05 跨批次筛选和留存结果</button><button type="button" data-manual-target="manualChapter5">06 回收站 修改记录和备份</button><button type="button" data-manual-target="manualChapter6">07 常见问题和交接检查</button></nav><article id="manualDialogArticle" tabindex="0" aria-label="操作手册正文"><div id="manualIntro" class="manual-chapter"><h2>快速上手</h2></div>
 <p>国际交流学院 · 适用于当前新版管理界面 · 2026年10月28日</p>
 <p>本手册供新接手的管理员查阅。日常工作按“导入资料、核对材料、勾选人员、留存结果”的顺序进行。积分认定以学院现行办法为准；系统识别不清楚的材料，需要人工核对。</p>
-<p>最重要的两件事：日常修改会自动保存，但关闭页面前要确认“已保存到云端”；要保留某次筛选的名单和当时分数，仍须点击“保存筛选结果”。</p>
+<p>最重要的两件事：日常修改会自动保存，但关闭页面前要确认“已保存到云端”；要保留某次筛选的名单和当时分数，仍须点击“保存名单和分数”。</p>
 <h3>第一次使用先做这几步</h3>
 <p class="manual-step"><strong>1.</strong><span>使用维护人员提供的正式网址和管理员账号登录，不需要每台电脑上传旧数据。</span></p>
 <p class="manual-step"><strong>2.</strong><span>进入“资料导入”下载模板，收齐后先核对导入预览。</span></p>
-<p class="manual-step"><strong>3.</strong><span>到“待审核材料”确认不清楚的材料，再进入“批次与筛选”选人。</span></p>
-<p class="manual-step"><strong>4.</strong><span>填写统一统计口径，保存筛选结果并导出，最后确认云端已保存。</span></p>
+<p class="manual-step"><strong>3.</strong><span>到“待审核材料”确认不清楚的材料，再进入“发展名单”选人。</span></p>
+<p class="manual-step"><strong>4.</strong><span>填写材料累计范围，保存名单和分数并导出，最后确认云端已保存。</span></p>
 <h3>各板块查看什么</h3>
-<div class="manual-table-wrap"><table><thead><tr><th scope="col">板块</th><th scope="col">主要用途</th></tr></thead><tbody><tr><td>工作台</td><td>查看人员总数、待审核人数和本次已选人数。</td></tr><tr><td>资料导入</td><td>下载模板，导入新同学或补充老同学资料。</td></tr><tr><td>人员与积分</td><td>按姓名、班级或学号找人，查看分项及人工核对。</td></tr><tr><td>批次与筛选</td><td>跨批次选人，汇总排名，保存或导出本次结果。</td></tr><tr><td>待审核材料</td><td>核对级别、职务等不明确的内容，支持连续审核。</td></tr><tr><td>全部积分汇总</td><td>查看全体人员积分，不等于本次勾选名单。</td></tr><tr><td>历史筛选结果</td><td>查看、导出过去已保存的结果。</td></tr><tr><td>人员回收站</td><td>单独恢复误移除的同学，或永久删除。</td></tr><tr><td>修改记录</td><td>查看近期关键操作及修改前后的内容。</td></tr><tr><td>评分标准及备份与恢复</td><td>核对现行规则，下载或恢复完整备份。</td></tr></tbody></table></div>
+<div class="manual-table-wrap"><table><thead><tr><th scope="col">板块</th><th scope="col">主要用途</th></tr></thead><tbody><tr><td>工作台</td><td>查看人员总数、待审核人数和本次已选人数。</td></tr><tr><td>资料导入</td><td>下载模板，导入新同学或补充老同学资料。</td></tr><tr><td>人员与积分</td><td>按姓名、班级或学号找人，查看分项及人工核对。</td></tr><tr><td>发展名单</td><td>从全部成员勾选，保存年度发展名单，沿用、改名或删除名单。</td></tr><tr><td>待审核材料</td><td>核对级别、职务等不明确的内容，支持连续审核。</td></tr><tr><td>名单积分汇总</td><td>查看全体人员积分，不等于本次勾选名单。</td></tr><tr><td>历史筛选结果</td><td>查看、导出过去已保存的结果。名单积分汇总先显示卡片，打开后默认显示保存当时的分数，并支持简洁和明细模式。</td></tr><tr><td>人员回收站</td><td>单独恢复误移除的同学，或永久删除。</td></tr><tr><td>修改记录</td><td>查看近期关键操作及修改前后的内容。</td></tr><tr><td>评分标准及备份与恢复</td><td>核对现行规则，下载或恢复完整备份。</td></tr></tbody></table></div>
 <h2 id="manualChapter1" class="manual-chapter">登录与保存</h2>
 <h3>登录和刷新</h3>
 <p class="manual-step"><strong>1.</strong><span>输入管理员账号和密码登录。刷新同一窗口时，系统会尝试恢复登录，并读取云端最新数据。</span></p>
@@ -179,9 +180,9 @@
 <p>不要把 http://127.0.0.1:8080/ 发给其他电脑使用，它是本机测试地址。其他管理员应使用维护人员提供的正式网址。</p>
 <h3>看顶部状态判断是否保存成功</h3>
 <div class="manual-table-wrap"><table><thead><tr><th scope="col">顶部状态</th><th scope="col">应怎样操作</th></tr></thead><tbody><tr><td>等待保存或正在保存</td><td>先等待，不要立即关闭或刷新。</td></tr><tr><td>已保存到云端</td><td>当前修改已经同步，可让另一窗口刷新查看。</td></tr><tr><td>未登录或仅保存在本机</td><td>不能视为已共享给其他管理员；先确认登录和网络。</td></tr><tr><td>保存失败</td><td>先保留页面、下载完整备份，再检查网络并重试保存。</td></tr><tr><td>保存冲突</td><td>不要继续覆盖；先备份本机修改，再读取云端最新版。</td></tr></tbody></table></div>
-<h3>自动保存和保存筛选结果的区别</h3>
+<h3>自动保存和保存名单和分数的区别</h3>
 <p>自动保存负责同步日常工作数据，例如导入资料、人工计分、勾选人员、恢复人员。顶部“保存”可用于手动再次提交或重试。</p>
-<p>“保存筛选结果”负责留存本次名单、当时的分数、统计口径和计分规则。只勾选人员或看到“已保存到云端”，并不代表已经建立历史筛选结果。</p>
+<p>“保存名单和分数”一次留存选人名单、当时的分数和计分规则。勾选变化会自动同步，但只有点击这个按钮，才会新增当时分数的保存版本。</p>
 <h3>多人使用时</h3>
 <p>第一个网页完成修改并显示“已保存到云端”后，第二个网页需要刷新或读取最新版，才会看到变化。第二个网页若还有未同步的修改，先处理保存或备份，避免直接刷新丢失内容。</p>
 <p>遇到冲突时，按提示下载本机备份、读取最新版，再对照备份补回必要修改。不要直接用整份旧备份覆盖最新数据。</p>
@@ -192,13 +193,13 @@
 <p>同一格换行可按 Alt＋Enter，不便换行可用中文分号隔开。学院“部门负责人”对应原办法中的“院级部长”，名称兼容不改变分值。</p>
 <h3>导入前必须看预览</h3>
 <p class="manual-step"><strong>1.</strong><span>进入“资料导入”上传收集表，查看新增、更新、无变化和身份冲突数量。</span></p>
-<p class="manual-step"><strong>2.</strong><span>选择已有批次，或填写新批次名称。批次表示资料来源，不代表最终筛选名单。</span></p>
+<p class="manual-step"><strong>2.</strong><span>选择已有批次，或填写新批次名称。导入记录只表示资料来源。导入后请到“发展名单”保存最终参选人员。</span></p>
 <p class="manual-step"><strong>3.</strong><span>逐项核对“更新”的变化内容。姓名、学号或同名同班身份有冲突时，先核实原表，系统不会自动合并。</span></p>
 <p class="manual-step"><strong>4.</strong><span>如决定只导入无冲突的记录，明确勾选跳过冲突；被跳过的行修改后还需重新导入。</span></p>
 <p class="manual-step"><strong>5.</strong><span>确认导入后查看结果卡，按“核对本次待审核材料”或“继续选人筛选”进入下一步。</span></p>
 <h3>给老同学追加材料</h3>
 <p>仍用同一模板，优先填写原学号。没有学号时，可用姓名和班级辅助匹配，但要核实导入预览显示“更新”，避免建立重复档案。</p>
-<p>奖项和活动会追加，完全相同的条目去重；留空栏目保留原资料。排名、职务、志愿总时长等非空栏目会更新原值。原10小时再增加5小时，应填累计15，不能只填5。</p>
+<p>活动和奖项从各自确定为入党积极分子之日起持续累计。既可只填新增内容，也可重新填写完整经历；重复材料合并后只计一次，疑似重复在导入预览中确认。不同日期的同名活动分别保留，建议写清活动日期。留空栏目保留原资料。排名、职务、志愿总时长等非空栏目会更新原值。原10小时再增加5小时，应填累计15，不能只填5。</p>
 <h2 id="manualChapter3" class="manual-chapter">查看积分和人工审核</h2>
 <h3>查找与查看人员</h3>
 <p class="manual-step"><strong>1.</strong><span>进入“人员与积分”，按姓名、班级、学号搜索，或选择班级。</span></p>
@@ -219,22 +220,22 @@
 <p>连续审核期间出现保存冲突时，应先处理冲突。审核进度属于本轮操作提示，不代表所有材料均已审核完成。</p>
 <h3>人工确认后的重算</h3>
 <p>已人工确认的分类与分数会受到保留保护。补充资料或重算后，仍应抽查人工计分与新增材料；发现明显异常时停止批量操作，先下载备份并反馈维护人员。</p>
-<h2 id="manualChapter4" class="manual-chapter">跨批次筛选和留存结果</h2>
-<h3>新老同学一起筛选</h3>
-<p class="manual-step"><strong>1.</strong><span>进入“批次与筛选”。刚导入的本批人员会自动勾选，先检查是否都是本次应参加人员。</span></p>
-<p class="manual-step"><strong>2.</strong><span>切换到历史批次或全部批次，搜索并勾选需要加入的老同学。切换批次不会主动取消已有勾选。</span></p>
-<p class="manual-step"><strong>3.</strong><span>点击“查看完整勾选名单”，核对是否漏人、多选或重复；检查待审核人数。</span></p>
-<p class="manual-step"><strong>4.</strong><span>如看不到预期人员，检查批次、审核状态、分数范围、搜索词及“只看已选”等条件，必要时清空筛选条件。</span></p>
-<p>一个人可参加多次筛选，批次只标记录入来源。“取消勾选”只移出本次名单，“移入人员回收站”则从当前人员库移除，两者不同。</p>
+<h2 id="manualChapter4" class="manual-chapter">发展名单和留存结果</h2>
+<h3>建立并沿用发展名单</h3>
+<p class="manual-step"><strong>1.</strong><span>进入“发展名单”，默认显示全部成员。按姓名、学号或班级查找并勾选，检查当前显示人数。</span></p>
+<p class="manual-step"><strong>2.</strong><span>点击“保存为发展名单”，填写年度和名称，例如“2026年第二批发展对象”。以后打开该名单即可继续调整，勾选变化自动保存。</span></p>
+<p class="manual-step"><strong>3.</strong><span>可点击“沿用最近名单”，或在“管理已有发展名单”中沿用新建、改名或删除。删除名单不会删除学生资料和历史积分结果。</span></p>
+<p class="manual-step"><strong>4.</strong><span>点击“查看完整勾选名单”核对人员。看不到预期成员时，点击“显示全部成员”，并检查“更多筛选条件”中的限制。</span></p>
+<p>一个人可以加入多份发展名单。“取消勾选”只移出当前名单；“删除名单”只删除该分组；“移入人员回收站”才会移出当前人员库。</p>
 <h3>先统一材料口径</h3>
-<p>老同学的排名、职务和志愿累计时长可能已经变化，参加新一轮筛选前应确认是否需要补充。所有参选人员要采用学院要求的同一统计时段或累计口径，不能直接比较不同时间范围的材料。</p>
+<p>老同学的排名、职务和志愿累计时长可能已经变化，参加新一轮筛选前应确认是否需要补充。所有成员均按各自确定为入党积极分子之日起持续累计，不按发展名单年度清零，也不设置固定截止日期。</p>
 <h3>保存本次筛选结果</h3>
-<p class="manual-step"><strong>1.</strong><span>在保存区域填写筛选名称，例如“2026年第二批综合筛选”。</span></p>
-<p class="manual-step"><strong>2.</strong><span>填写统一统计口径，例如学院通知的材料起止日期或累计范围；这里的文字说明不会自动过滤旧奖项，需要管理员核对材料。</span></p>
-<p class="manual-step"><strong>3.</strong><span>点击“保存筛选结果”。如仍有待审核人员，认真阅读提示；暂存结果不可当成最终审核结论。</span></p>
+<p class="manual-step"><strong>1.</strong><span>在保存区域保存名单时填写年度和名称，例如“2026年第二批发展对象”，名单和分数会同时留存。</span></p>
+<p class="manual-step"><strong>2.</strong><span>材料范围固定为自各自确定为入党积极分子之日起持续累计，无需填写截止日期。结果保存时间只表示留存这份分数的时间。</span></p>
+<p class="manual-step"><strong>3.</strong><span>点击“保存名单和分数”。如仍有待审核人员，认真阅读提示；暂存结果不可当成最终审核结论。</span></p>
 <p class="manual-step"><strong>4.</strong><span>等待顶部“已保存到云端”，再到“历史筛选结果”确认可以找到该次结果。</span></p>
 <h3>选择正确的导出入口</h3>
-<div class="manual-table-wrap"><table><thead><tr><th scope="col">入口</th><th scope="col">导出或查看的范围</th></tr></thead><tbody><tr><td>导出本次勾选结果</td><td>当前选中人员按当前资料计算的结果。</td></tr><tr><td>历史筛选结果中的导出</td><td>保存当时的名单、分数与规则，不随以后修改变化。</td></tr><tr><td>全部积分汇总</td><td>全体在库人员，不能直接当作本次筛选名单。</td></tr><tr><td>个人导出明细</td><td>当前学生的详细积分，便于逐项复核。</td></tr></tbody></table></div>
+<div class="manual-table-wrap"><table><thead><tr><th scope="col">入口</th><th scope="col">导出或查看的范围</th></tr></thead><tbody><tr><td>导出本次勾选结果</td><td>当前选中人员按当前资料计算的结果。</td></tr><tr><td>历史筛选结果中的导出</td><td>保存当时的名单、分数与规则，不随以后修改变化。</td></tr><tr><td>名单积分汇总</td><td>全体在库人员，不能直接当作本次筛选名单。</td></tr><tr><td>个人导出明细</td><td>当前学生的详细积分，便于逐项复核。</td></tr></tbody></table></div>
 <p>人员补充材料后，过去保存的结果不会自动更新。需要新结果时重新核对并保存，或从历史名单重新选择后另存一份。导出Excel后，先核对人数、姓名、总分和待审核状态，再对外使用。</p>
 <h2 id="manualChapter5" class="manual-chapter">回收站 修改记录和备份</h2>
 <h3>移除和恢复人员</h3>
@@ -269,7 +270,7 @@
 <p>当前人员先进入回收站，可单独恢复，因此日常移除不会反复下载完整备份。永久删除才触发备份下载；历史筛选结果仍会保留。</p>
 <h3>管理员交接前逐项确认</h3>
 <p class="manual-step"><strong>1.</strong><span>确认接手人拿到正确的正式网址与账号，不在聊天群公开发送密码。</span></p>
-<p class="manual-step"><strong>2.</strong><span>核对本次批次、统一统计口径、已选人数和未处理的审核材料。</span></p>
+<p class="manual-step"><strong>2.</strong><span>核对本次批次、材料累计范围、已选人数和未处理的审核材料。</span></p>
 <p class="manual-step"><strong>3.</strong><span>确认需要留存的筛选结果已保存，导出人数与名单一致。</span></p>
 <p class="manual-step"><strong>4.</strong><span>下载一份完整JSON备份，说明保存位置、日期和适用范围。</span></p>
 <p class="manual-step"><strong>5.</strong><span>告知尚未处理的冲突、异常材料和回收站事项；退出公用电脑上的账号。</span></p>
@@ -304,14 +305,20 @@
 <p>5. 本方案自发布之日起施行。</p></article></div></dialog>
 <script src="scoring-rules-dialog.js?v=rules-reference-19"></script>
 <script src="manual-dialog.js?v=manual-dialog-18"></script>
+<dialog id="materialReviewDialog" class="material-wizard" aria-labelledby="materialReviewTitle"><header><h2 id="materialReviewTitle">逐项核对相似材料</h2><button class="btn" id="materialReviewClose" type="button">返回导入预览</button></header><div id="materialReviewBody"></div></dialog>
+<div id="exportDetailConfirm" class="list-delete-popover" popover="auto" role="alertdialog" aria-label="确认导出个人明细"></div>
+<div id="listDeleteConfirm" class="list-delete-popover" popover="auto" role="alertdialog" aria-label="确认删除发展名单"></div>
 <script src="cloudbase.full.js"></script>
-<script src="batch-core.js?v=workspace-2"></script>
-<script src="admin-core.js?v=admin-tools-16"></script>
+<script src="batch-core.js?v=roster-flow-23"></script>
+<script src="development-lists.js?v=roster-flow-23"></script>
+<script src="admin-core.js?v=development-lists-20"></script>
 <script src="cloud-sync.js?v=workflow-1"></script>
-<script src="app.js?v=admin-tools-16"></script>
-<script src="batches.js?v=import-receipt-14"></script>
+<script src="app.js?v=cumulative-materials-22"></script>
+<script src="batches.js?v=roster-flow-23"></script>
 <section id="workspaceRecycle" class="hide"></section><section id="workspaceAudit" class="hide"></section>
-<script src="workspace.js?v=admin-tools-16"></script>
+<script src="workspace.js?v=roster-flow-23"></script>
+<script src="saved-scores.js?v=roster-flow-23"></script>
+<script src="roster-navigation.js?v=return-layout-24"></script>
 <script src="admin-tools.js?v=admin-tools-16"></script>
 <script>document.getElementById("loginAccountPwd").addEventListener("keydown",function(e){if(e.key==="Enter")tryLogin();});</script>
 <script>
