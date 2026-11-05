@@ -32,7 +32,7 @@
     delete clean['名字'];delete clean['班别'];return clean;
   }
   function signature(state){return JSON.stringify(state.members.map(function(m){var c={};Object.keys(m).sort().forEach(function(k){if(k[0]!=='_'||['_memberId','_batchIds','_updatedAt'].indexOf(k)>=0)c[k]=m[k];});c.manual=manualItems(m);return c;}));}
-  function materialLines(v){return String(v||'').split(/[\r\n；;]+/).map(function(x){return x.trim();}).filter(function(x){return x&&!/^(无|暂无|-)$/.test(x);});}
+  function materialLines(v){return String(v||'').replace(/[ \t\u00a0\u3000]{2,}(?=20\d{2}(?:(?:[-—–~至到]\s*20\d{2})?\s*学年|年(?:\s*\d{1,2}月(?:\s*\d{1,2}日)?)?|[-/.]\d{1,2}(?:[-/.]\d{1,2})?)\s*[|｜])/g,'\n').split(/[\r\n；;]+/).map(function(x){return x.trim();}).filter(function(x){return x&&!/^(无|暂无|-)$/.test(x);});}
   function cleanMaterial(v){
     return text(v).toLowerCase().replace(/^\s*(?:[（(]\d{1,2}[）)]\s*|\d{1,2}[、]\s*|\d{1,2}[.．](?:\s+|(?=[^\d]))|[一二三四五六七八九十]+[、]\s*)/,'');
   }
@@ -125,5 +125,5 @@
     var snapshot={id:id('screening'),name:text(options.name),period:text(options.period),createdAt:options.now||new Date().toISOString(),rows:chosen,rules:clone(state.rules),criteriaVersion:state.criteriaVersion||state.schemaVersion,coefficient:1,status:chosen.some(function(r){return r.uncertain>0;})?'待审核':'已留存'};
     state.screeningHistory.push(snapshot);state.screeningDraft.name=snapshot.name;state.screeningDraft.period=snapshot.period;return snapshot;
   }
-  return{MATERIAL_SCOPE:'自各自确定为入党积极分子之日起持续累计',materialKey:materialKey,analyzeMaterialMerge:analyzeMaterialMerge,ensure:ensure,text:text,id:id,studentId:studentId,planImport:planImport,applyImport:applyImport,mergeLines:mergeLines,signature:signature,batchNames:batchNames,scoreRows:scoreRows,selectedRows:selectedRows,saveScreening:saveScreening,clone:clone,rankRows:rankRows};
+  return{MATERIAL_SCOPE:'自各自确定为入党积极分子之日起持续累计',materialLines:materialLines,materialKey:materialKey,analyzeMaterialMerge:analyzeMaterialMerge,ensure:ensure,text:text,id:id,studentId:studentId,planImport:planImport,applyImport:applyImport,mergeLines:mergeLines,signature:signature,batchNames:batchNames,scoreRows:scoreRows,selectedRows:selectedRows,saveScreening:saveScreening,clone:clone,rankRows:rankRows};
 });
