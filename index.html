@@ -108,7 +108,7 @@
 <div class="main-content hide" id="viewPersonal">
 <div class="member-header person-profile">
   <div class="person-profile-identity"><span class="person-profile-kicker">学生档案</span><div class="person-profile-name"><span class="mh-name" id="mhName">—</span><span class="mh-class" id="mhClass">—</span></div><p id="personProfileMeta" class="person-profile-meta"></p><span id="personReviewStatus" class="person-review-status"></span></div>
-  <div class="person-profile-actions"><button class="btn btn-p" id="btnExportDetail">导出明细</button><details class="person-more-actions"><summary>更多操作</summary><div class="person-more-menu"><button class="btn" id="btnShowSummary">查看名单积分汇总</button><label><input type="checkbox" id="coefCb"> 采用前期 ×0.6 系数</label><button class="btn btn-d" id="workspaceRemoveMember">移入人员回收站</button></div></details></div>
+  <div class="person-profile-actions"><button class="btn btn-p" id="btnExportDetail">导出明细</button><details class="person-more-actions"><summary>更多操作</summary><div class="person-more-menu"><button class="btn" id="btnShowSummary">查看名单积分汇总</button><label><input type="checkbox" id="coefCb"> 采用前期 ×0.6 系数</label><button class="btn btn-d" id="workspaceRemoveMember">移入回收站（人员）</button></div></details></div>
 </div>
 <div class="score-section" id="scoreSection">
 <div class="cards" id="scoreCards">
@@ -228,17 +228,17 @@
 <p>简洁模式显示排名、姓名、班级、三大板块和总分；明细模式显示分项。汇总及其 Excel 导出不展示学号列，底层身份字段保留。姓名、班级可换行，手机表格可左右滑动并固定姓名列。</p>
 <p>点击表头切换升序／降序，箭头表示方向。排序只改变显示顺序，不改变按总分计算的名次、积分或历史记录。汇总导出保留当前排序；明细模式的界面分项展示不等于导出文件增加全部分项列。</p>
 <p>个人“导出明细”导出该成员当前材料；历史结果导出使用当时保存的数据；实时汇总导出使用当前分数。对外使用前核对人数、姓名、总分及待审核状态，并确认云端保存成功。</p>
-<h2 id="manualChapter5" class="manual-chapter">两类回收站、修改记录和备份</h2>
-<h3>汇总回收站</h3>
-<p>在“名单积分汇总”将不需要的汇总“移入回收站”，再从该页面的“回收站”恢复。移入汇总回收站只隐藏汇总，不删除成员、材料、积分或发展名单分组；当前入口提供恢复，不提供清空或永久删除操作。</p>
-<h3>人员回收站与删除名单</h3>
-<p>“管理名单”中的“删除名单”只删除分组，人员和历史结果保留，不等于移入汇总回收站。“人员与积分 → 更多操作 → 移入人员回收站”才会移出人员库及当前名单，历史分数仍保留。</p>
-<p>误移除成员时，从左侧“人员回收站”恢复该同学；需要参加筛选时重新勾选。遇到身份冲突先核实。人员回收站的“永久删除”会先触发备份下载；汇总回收站没有这一操作。</p>
+<h2 id="manualChapter5" class="manual-chapter">统一回收站、修改记录和备份</h2>
+<h3>回收站 → 名单汇总</h3>
+<p>左侧统一入口为“回收站”，内有“人员”和“名单汇总”两个标签；汇总页的“回收站”按钮直接进入“名单汇总”标签。汇总移入后，对应名单从人员与积分、发展名单的筛选选项中隐藏；恢复后重新显示。若原来正按该名单筛选，会切回“全部成员”。学生资料与积分仍保留，汇总仅支持恢复，不提供永久删除。</p>
+<h3>回收站 → 人员，以及删除名单分组</h3>
+<p>“管理名单”中的“删除名单”只删除分组，人员和历史结果保留，不等于将汇总移入回收站。“人员与积分 → 更多操作 → 移入回收站（人员）”才会移出人员库及当前名单，历史分数仍保留。</p>
+<p>误移除成员时，从“回收站 → 人员”恢复该同学；需要参加筛选时重新勾选。遇到身份冲突先核实。“人员”标签的“永久删除”会先触发备份下载；“名单汇总”标签没有这一操作。</p>
 <h3>修改记录</h3>
 <p>“修改记录”用于核对关键变化，最近保留500条；共用账号统一记为管理员，不能据此确定实际操作人，也不提供任意字段的一键撤销。启用前的旧修改不会补出记录。</p>
 <h3>完整备份与恢复</h3>
 <p>“备份与恢复 → 下载完整备份”生成 JSON，包含工作数据、人员回收站、名单、历史结果和规则等；浏览器 AI 草稿另行保存在当前浏览器。Excel结果表不能替代完整JSON备份。</p>
-<p>恢复完整备份会替换当前工作数据，不自动合并，系统先触发下载恢复前备份。只需恢复人员或汇总时，优先使用对应回收站，避免整体覆盖其他管理员的新资料。备份妥善保管，不要放进公开代码仓库。</p>
+<p>恢复完整备份会替换当前工作数据，不自动合并，系统先触发下载恢复前备份。只需恢复人员或汇总时，优先使用回收站的对应标签，避免整体覆盖其他管理员的新资料。备份妥善保管，不要放进公开代码仓库。</p>
 <h2 id="manualResponsive" class="manual-chapter">手机与不同窗口的操作</h2>
 <p>宽屏保留顶部院徽、系统名称及学院名称；窄屏只保留院徽，学院名称放在“更多”中，侧边栏不重复显示大标题。部分顶部按钮会随窗口变窄移到“更多”，变宽后回到原位，功能仍可使用。</p>
 <p>小窗口左侧使用图标导航，手机和平板点击“☰”展开或收起菜单。手机“人员与积分”先显示列表，选中成员后进入详情，用“返回成员列表”切换；从汇总点姓名可直接查看该成员。</p>
@@ -253,7 +253,7 @@
 <h3>另一台电脑看不到修改或草稿</h3>
 <p>工作数据先确认云端保存成功，再让另一网页刷新。AI 核对草稿保存在原浏览器，不会随成员数据跨电脑出现；本机测试地址与正式网站的草稿也互不通用。</p>
 <h3>交接前确认</h3>
-<p>核对正式网址、账号、批次名称、已选人数、材料累计范围和待审核项；确认应固定的名单已定稿、导出人数一致、顶部显示已保存到云端。保留一份完整JSON备份，说明未完成草稿所在浏览器、未处理冲突和两类回收站事项，并退出公用电脑账号。</p>
+<p>核对正式网址、账号、批次名称、已选人数、材料累计范围和待审核项；确认应固定的名单已定稿、导出人数一致、顶部显示已保存到云端。保留一份完整JSON备份，说明未完成草稿所在浏览器、未处理冲突和回收站中两类内容的处理事项，并退出公用电脑账号。</p>
 <p class="manual-version-note">本页为随系统维护的内置操作手册，更新日期为2026年11月6日。飞书链接仅作旧版资料参考，本次未同步修改飞书文档。学院评分文件通过“评分细则”查阅，评分认定以学院现行办法为准。</p></article></div></dialog>
 <dialog id="scoringRulesDialog" class="manual-dialog" aria-labelledby="scoringRulesTitle"><header class="manual-dialog-header"><div><span>学院评分文件</span><h2 id="scoringRulesTitle">评分细则</h2></div><div class="manual-header-actions"><a class="btn" href="assets/scoring-rules.docx" download>下载原文件</a><button type="button" id="scoringRulesClose" class="btn rules-close" aria-label="关闭评分细则">×</button></div></header><div class="manual-dialog-body"><nav class="manual-toc" aria-label="评分细则目录"><button type="button" data-rules-target="rulesChapter1">一、实施背景</button><button type="button" data-rules-target="rulesChapter2">二、核心目标</button><button type="button" data-rules-target="rulesChapter3">三、积分指标体系</button><button type="button" data-rules-target="rulesChapter4">四、结果应用</button><button type="button" data-rules-target="rulesChapter5">五、动态运行保障</button><button type="button" data-rules-target="rulesChapter6">六、附则</button></nav><article id="rulesDialogArticle" tabindex="0" aria-label="评分文件原文"><p class="rules-reading-note"><strong>查阅说明</strong>　以下保留学院原文件条文及表格。本页面只供查阅，不会修改系统参数。原文“一票否决”条款保留展示，系统不自动执行该功能。原文与当前参数有差异时，请管理员核实学院现行口径后处理。</p><p>国际交流学院</p>
 <p>党员积分制量化考核实施方案（修订版）</p>
@@ -290,20 +290,20 @@
 <div id="listDeleteConfirm" class="list-delete-popover" popover="auto" role="alertdialog" aria-label="确认删除发展名单"></div>
 <script src="cloudbase.full.js"></script>
 <script src="batch-core.js?v=ai-review-28"></script>
-<script src="development-lists.js?v=summary-lifecycle-40"></script>
+<script src="development-lists.js?v=unified-recycle-43"></script>
 <script src="admin-core.js?v=development-lists-20"></script>
 <script src="cloud-sync.js?v=workflow-1"></script>
 <script src="ai-import-core.js?v=context-v3"></script>
 <script src="ai-import-plan.js?v=optional-split-40"></script>
 <script src="app.js?v=annotation-34"></script>
 <script src="ai-import-classification.js?v=annotation-39"></script>
-<script src="batches.js?v=summary-lifecycle-40"></script>
+<script src="batches.js?v=unified-recycle-43"></script>
 <section id="workspaceRecycle" class="hide"></section><section id="workspaceAudit" class="hide"></section>
-<script src="workspace.js?v=responsive-41"></script>
+<script src="workspace.js?v=unified-recycle-43"></script>
 <script src="saved-scores-core.js?v=summary-lifecycle-40"></script>
-<script src="saved-scores.js?v=responsive-41"></script>
+<script src="saved-scores.js?v=unified-recycle-43"></script>
 <script src="roster-navigation.js?v=return-layout-24"></script>
-<script src="admin-tools.js?v=modal-guard-27"></script>
+<script src="admin-tools.js?v=unified-recycle-43"></script>
 <script>document.getElementById("loginAccountPwd").addEventListener("keydown",function(e){if(e.key==="Enter")tryLogin();});</script>
 <script>
 document.getElementById('btnMore').addEventListener('click',function(e){e.stopPropagation();document.getElementById('topbarMoreMenu').classList.toggle('open');});
@@ -315,4 +315,3 @@ document.addEventListener('click',function(e){if(!e.target.closest('.topbar-more
 <script src="responsive-ui.js?v=responsive-41"></script>
 </body>
 </html>
-

@@ -6,7 +6,7 @@
   function safe(value){return esc(value==null?'':String(value));}
   function ensure(){L.ensure(APP);}
   function date(value){return value?new Date(value).toLocaleString('zh-CN',{hour12:false}):'历史数据，时间未知';}
-  function scores(){return C.scoreRows(APP,function(m){classifyMember(m);return calc(m,false);}).map(function(r){r.batches=APP.developmentLists.filter(function(l){return l.memberIds.indexOf(r.memberId)>=0;}).map(function(l){return l.name;}).join('、')||'尚未加入名单';return r;});}
+  function scores(){return C.scoreRows(APP,function(m){classifyMember(m);return calc(m,false);}).map(function(r){r.batches=APP.developmentLists.filter(function(l){return !l.summaryDeletedAt&&l.memberIds.indexOf(r.memberId)>=0;}).map(function(l){return l.name;}).join('、')||'尚未加入名单';return r;});}
   function persist(){var list=L.current(APP);if(list&&list.scoreMode!=='live'&&JSON.stringify(list.memberIds)!==JSON.stringify(APP.screeningDraft.selectedIds)){APP.screeningDraft.listId='';APP.screeningDraft.name='';toast('原名单已定稿，当前勾选作为新名单草稿；原名单和分数保留。');}L.sync(APP);sv();}
   function option(value,label,chosen){return '<option value="'+safe(value)+'"'+(value===chosen?' selected':'')+'>'+safe(label)+'</option>';}
   function options(chosen,all){return(all?option('','全部导入记录',chosen):'')+APP.batches.map(function(b){return option(b.id,b.name,chosen);}).join('');}
@@ -47,7 +47,7 @@
     return '<section class="import-receipt" aria-label="最近一次导入结果"><h3>导入完成 · '+safe(importReceipt.batch.name)+'</h3><p>新增 <strong>'+c.new+'</strong> 人，更新 <strong>'+c.update+'</strong> 人，无变化 '+c.unchanged+' 人，跳过冲突 '+c.conflict+' 行。</p><p>本次导入人员当前有 <strong>'+items+'</strong> 项待审核，涉及 '+people+' 人。已自动勾选本次人员，可继续添加老同学。</p><p class="import-receipt-note">资料已处理；云端是否保存成功，请以顶部保存状态为准。点击“保存名单和分数”会同时留存名单与当时分数。</p><div class="workflow-actions"><button class="btn btn-p" data-import-next="review">核对本次待审核材料</button><button class="btn" data-import-next="members">查看导入人员</button><button class="btn" data-import-next="screening">继续选人筛选</button><button class="btn btn-g" data-import-next="dismiss">收起提示</button></div></section>';
   }
   function render(){
-    if(!visible)return;ensure();
+    if(!visible)return;ensure();if(filters.listScope&&!L.ordered(APP).some(function(l){return l.id===filters.listScope;}))filters.listScope='';
     var rows=scores(),chosen=C.selectedRows(APP,rows),chosenById=new Map(chosen.map(function(r){return[r.memberId,r];}));
     var body=byId('workflowView');
     var active=L.current(APP),lists=L.ordered(APP),classes=Array.from(new Set(rows.map(function(r){return r.className;}))).sort(function(a,b){return a.localeCompare(b,'zh-CN');});
