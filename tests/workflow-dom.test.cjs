@@ -23,7 +23,7 @@ function harness(options={}){
  const document={getElementById(id){return ids.get(id)||null;},querySelectorAll(s){return all.filter(e=>matches(e,s));},querySelector(s){return this.querySelectorAll(s)[0]||null;},addEventListener(){},createElement:tag=>element(tag),body:element('body')};
  const storage=new Map(),session=options.session||new Map(),alerts=[],windowEvents={};let download;
  const ctx={document,console,TextEncoder,TextDecoder,btoa:s=>Buffer.from(s,'binary').toString('base64'),atob:s=>Buffer.from(s,'base64').toString('binary'),sessionStorage:{getItem(k){return session.get(k)||null;},setItem(k,v){session.set(k,v);},removeItem(k){session.delete(k);}},crypto:require('node:crypto').webcrypto,Blob,URL:{createObjectURL(blob){download=blob;return'blob:test';},revokeObjectURL(){}},localStorage:{getItem(k){return storage.get(k)||null;},setItem(k,v){storage.set(k,v);},removeItem(k){storage.delete(k);}},setTimeout(){return 1;},clearTimeout(){},addEventListener(name,fn){(windowEvents[name]||(windowEvents[name]=[])).push(fn);},confirm(){return true;},alert(m){alerts.push(m);},cloudbase:{init(){return{};}},XLSX:{},innerWidth:1440};ctx.window=ctx;ctx.location={reload(){}};
- vm.createContext(ctx);['batch-core.js','ai-import-core.js','ai-import-plan.js','development-lists.js','admin-core.js','cloud-sync.js','app.js','ai-import-classification.js','batches.js','manual-dialog.js','scoring-rules-dialog.js','saved-scores.js'].concat(options.workspace?['workspace.js','roster-navigation.js','admin-tools.js']:[]).concat(['ai-import.js']).forEach(f=>vm.runInContext(f==='app.js'?fs.readFileSync(path.join(__dirname,'..',f),'utf8').replace('enabled:true','enabled:false'):fs.readFileSync(path.join(__dirname,'..',f),'utf8'),ctx,{filename:f}));
+ vm.createContext(ctx);['batch-core.js','ai-import-core.js','ai-import-plan.js','development-lists.js','admin-core.js','cloud-sync.js','app.js','ai-import-classification.js','batches.js','manual-dialog.js','scoring-rules-dialog.js','saved-scores-core.js','saved-scores.js'].concat(options.workspace?['workspace.js','roster-navigation.js','admin-tools.js']:[]).concat(['ai-import.js']).forEach(f=>vm.runInContext(f==='app.js'?fs.readFileSync(path.join(__dirname,'..',f),'utf8').replace('enabled:true','enabled:false'):fs.readFileSync(path.join(__dirname,'..',f),'utf8'),ctx,{filename:f}));
  // The fixture contains no private data; disable cloud writes in this isolated context.
  ctx.CLOUD_ENABLED=false;
  ctx.APP={rules:JSON.parse(JSON.stringify(ctx.DEF)),members:[{'姓名':'虚构老同学','班级':'A班','学号':'001'}],learnedMap:{},criteriaVersion:10,curIdx:0};ctx.R=ctx.APP.rules;ctx.BatchCore.ensure(ctx.APP);ctx.DevelopmentLists.ensure(ctx.APP);ctx.AdminCore.ensure(ctx.APP);ctx._auditSnapshot=ctx.AdminCore.snapshot(ctx.APP);ctx._resetMemberChangeSignatures();
@@ -41,6 +41,26 @@ test('navigation and student list fold independently and retain an accessible re
  nav.click();assert(!h.document.body.classList.contains('workspace-nav-collapsed'));assert(h.ids.get('workspaceMembers').classList.contains('people-list-collapsed'));
  people.click();assert.equal(people.getAttribute('aria-expanded'),'true');
  assert.deepEqual(JSON.parse(h.storage.get('pps_layout_preferences')),{navCollapsed:false,peopleCollapsed:false});
+});
+
+test('current batch refreshes live scores while explicit finalization freezes both people and totals',()=>{
+ const h=harness({workspace:true}),c=h.ctx,m=c.APP.members[0];m['学习成绩排名']='1/40';m._ok=null;c.APP.screeningDraft.selectedIds=[m._memberId];const list=c.DevelopmentLists.create(c.APP,{year:'2026',name:'实时批次'});c.SavedScores.saveActive();c.AdminWorkspace.navigate('summary');h.ids.get('viewSummary').children.find(e=>e.dataset.scoreList===list.id).click();const before=c.SavedScores.currentSnapshot().rows[0].total;
+ m['学习成绩排名']='30/40';m._ok=null;c.SavedScores.render();assert.notEqual(c.SavedScores.currentSnapshot().rows[0].total,before);
+ h.ids.get('finalizeSummary').click();assert.equal(list.scoreMode,'frozen');const frozen=JSON.stringify(c.SavedScores.currentSnapshot());m['学习成绩排名']='1/40';m._ok=null;c.SavedScores.render();assert.equal(JSON.stringify(c.SavedScores.currentSnapshot()),frozen);const ids=list.memberIds.slice();c.APP.screeningDraft.selectedIds=[];c.DevelopmentLists.sync(c.APP);assert.equal(JSON.stringify(list.memberIds),JSON.stringify(ids));assert.throws(()=>c.SavedScores.saveActive(),/已定稿/);
+ h.ids.get('reopenSummary').click();assert.equal(list.scoreMode,'live');assert.notEqual(c.SavedScores.currentSnapshot().rows[0].total,JSON.parse(frozen).rows[0].total);assert(c.APP.screeningHistory.some(s=>s.summaryKind==='final'));
+});
+test('old saved lists remain frozen until explicitly reopened',()=>{
+ const h=harness({workspace:true}),c=h.ctx,m=c.APP.members[0];c.APP.screeningDraft.selectedIds=[m._memberId];const l=c.DevelopmentLists.create(c.APP,{year:'2026',name:'旧名单'});const snap=c.SavedScores.saveActive();delete l.scoreMode;m['学习成绩排名']='1/40';m._ok=null;c.AdminWorkspace.navigate('summary');h.ids.get('viewSummary').children.find(e=>e.dataset.scoreList===l.id).click();assert.equal(c.SavedScores.currentSnapshot().id,snap.id);assert(!h.ids.has('finalizeSummary')||!h.ids.get('viewSummary').innerHTML.includes('id="finalizeSummary"'));
+});
+test('summary recycling and restoration never remove members, material, scores or saved results',()=>{
+ const h=harness({workspace:true}),c=h.ctx,m=c.APP.members[0];c.APP.screeningDraft.selectedIds=[m._memberId];const l=c.DevelopmentLists.create(c.APP,{year:'2026',name:'可恢复汇总'});c.SavedScores.saveActive();const members=JSON.stringify(c.APP.members),history=JSON.stringify(c.APP.screeningHistory);c.AdminWorkspace.navigate('summary');h.ids.get('viewSummary').children.find(e=>e.dataset.summaryList===l.id).click();assert(l.summaryDeletedAt);assert(!h.ids.get('viewSummary').children.some(e=>e.dataset.scoreList===l.id));h.ids.get('summaryTrashToggle').click();assert(h.ids.get('viewSummary').children.some(e=>e.dataset.scoreList===l.id));h.ids.get('viewSummary').children.find(e=>e.dataset.summaryList===l.id).click();assert(!l.summaryDeletedAt);assert.equal(JSON.stringify(c.APP.members),members);assert.equal(JSON.stringify(c.APP.screeningHistory),history);h.ids.get('summaryTrashToggle').click();assert(h.ids.get('viewSummary').children.some(e=>e.dataset.scoreList===l.id));
+});
+test('summary sorting is numeric, reversible, stable and never mutates historical rows',()=>{
+ const h=harness(),core=h.ctx.SavedScoresCore,rows=[{memberId:'a',name:'张同学',total:9,ac:[3]},{memberId:'b',name:'李同学',total:100,ac:[8]},{memberId:'c',name:'王同学',total:20,ac:[]}],original=JSON.stringify(rows);
+ assert.equal(core.ordered(rows,'total','asc').map(r=>r.total).join(','),'9,20,100');assert.equal(core.ordered(rows,'total','desc').map(r=>r.total).join(','),'100,20,9');assert.equal(core.ordered(rows,'ac.0','desc').map(r=>r.memberId).join(','),'b,a,c');assert.equal(JSON.stringify(rows),original);
+});
+test('summary table hides student id and every displayed heading toggles its own sort direction',()=>{
+ const h=harness({workspace:true}),c=h.ctx;c.APP.screeningDraft.selectedIds=[c.APP.members[0]._memberId];const l=c.DevelopmentLists.create(c.APP,{year:'2026',name:'排序名单'});c.AdminWorkspace.navigate('summary');h.ids.get('viewSummary').children.find(e=>e.dataset.scoreList===l.id).click();assert(!h.ids.get('viewSummary').innerHTML.includes('>学号<'));let b=h.ids.get('viewSummary').children.find(e=>e.dataset.summarySort==='total');assert(b);b.click();assert(h.ids.get('viewSummary').innerHTML.includes('aria-sort="ascending"><button class="summary-sort" data-summary-sort="total"'));h.ids.get('viewSummary').children.find(e=>e.dataset.summarySort==='total').click();assert(h.ids.get('viewSummary').innerHTML.includes('aria-sort="descending"><button class="summary-sort" data-summary-sort="total"'));
 });
 
 test('full page scripts load and workflow renders using all referenced DOM ids',()=>{
@@ -96,7 +116,7 @@ test('workflow back and student-detail buttons return to the people board',()=>{
 test('saved roster export keeps aligned headers and exports only the stored snapshot',()=>{
  const h=harness({workspace:true}),c=h.ctx;let output;c.APP.screeningDraft.selectedIds=[c.APP.members[0]._memberId];c.DevelopmentLists.create(c.APP,{year:'2026',name:'导出保存的名单'});const snap=c.SavedScores.saveActive();
  c.XLSX={utils:{aoa_to_sheet(rows){return{rows};},book_new(){return{sheets:[]};},book_append_sheet(wb,sheet,name){wb.sheets.push({sheet,name});}},writeFile(wb){output=wb;}};
- c.AdminWorkspace.navigate('summary');h.ids.get('viewSummary').children.find(e=>e.dataset.scoreList).click();h.ids.get('btnExport').click();assert(output);const rows=output.sheets[0].sheet.rows;assert.equal(rows[0].length,15);assert.equal(rows[1].length,15);assert.equal(rows[1][8],snap.rows[0].total);assert(!JSON.stringify(output).includes('一票否决'));
+ c.AdminWorkspace.navigate('summary');h.ids.get('viewSummary').children.find(e=>e.dataset.scoreList).click();h.ids.get('btnExport').click();assert(output);const rows=output.sheets[0].sheet.rows;assert.equal(rows[0].length,14);assert.equal(rows[1].length,14);assert.equal(rows[1][7],snap.rows[0].total);assert(!JSON.stringify(output).includes('一票否决'));
 });
 
 test('ordinary discipline deductions still count without an automatic veto',()=>{
@@ -182,7 +202,7 @@ test('fictional end-to-end: old-person supplement, new import, manual review, mi
  saveRoster(h);assert.equal(c.APP.screeningHistory.length,1);const snap=JSON.stringify(c.APP.screeningHistory[0]);assert.equal(c.APP.screeningHistory[0].rows.length,2);
  const XLSX=require('../xlsx.full.min.js');let exported;c.XLSX={utils:XLSX.utils,writeFile(wb,name){exported={wb,name};}};
  h.ctx.AppWorkflow.exportSnapshot(h.ctx.APP.screeningHistory[0]);assert(exported);const bytes=XLSX.write(exported.wb,{type:'buffer',bookType:'xlsx'}),roundtrip=XLSX.read(bytes,{type:'buffer'});
- assert.equal(roundtrip.SheetNames.length,2);const rows=XLSX.utils.sheet_to_json(roundtrip.Sheets[roundtrip.SheetNames[0]],{header:1});assert.equal(rows.length,3);assert.equal(rows[0].length,15);assert(rows.slice(1).some(r=>String(r[1])==='001'));assert(rows.slice(1).some(r=>String(r[1])==='002'));
+ assert.equal(roundtrip.SheetNames.length,2);const rows=XLSX.utils.sheet_to_json(roundtrip.Sheets[roundtrip.SheetNames[0]],{header:1});assert.equal(rows.length,3);assert.equal(rows[0].length,14);assert(!rows[0].includes('学号'));assert(rows.slice(1).some(r=>r[1]===m['姓名']));
  c.APP.members[0]['志愿总时长']='20';c.render();assert.equal(JSON.stringify(c.APP.screeningHistory[0]),snap);assert.equal(JSON.stringify(c.APP.rules),rules);assert.deepEqual(h.alerts,[]);
 });
 
@@ -362,7 +382,7 @@ test('repeated full-history upload does not inflate real scores and preserves pr
 
 
 test('saved summary cards keep first-list scores frozen after second-list data changes and expose both view modes',()=>{
- const h=harness({workspace:true}),c=h.ctx,m=c.APP.members[0];m['学习成绩排名']='1/40';m._ok=null;c.APP.screeningDraft.selectedIds=[m._memberId];saveRoster((c.AdminWorkspace.navigate('screening'),h));const first=c.APP.developmentLists[0],old=c.APP.screeningHistory[0],oldRows=JSON.stringify(old.rows);
+ const h=harness({workspace:true}),c=h.ctx,m=c.APP.members[0];m['学习成绩排名']='1/40';m._ok=null;c.APP.screeningDraft.selectedIds=[m._memberId];saveRoster((c.AdminWorkspace.navigate('screening'),h));const first=c.APP.developmentLists[0],old=c.APP.screeningHistory[0],oldRows=JSON.stringify(old.rows);first.scoreMode='frozen';
  m['学习成绩排名']='30/40';m._ok=null;c.classifyMember(m);const second=c.DevelopmentLists.create(c.APP,{year:'2026',name:'第二批保存名单',memberIds:[m._memberId]});c.SavedScores.saveActive();assert.notEqual(c.APP.screeningHistory.at(-1).rows[0].total,old.rows[0].total);
  c.AdminWorkspace.navigate('summary');assert.equal(h.ids.get('viewSummary').children.filter(e=>e.dataset.scoreList).length,2);h.ids.get('viewSummary').children.find(e=>e.dataset.scoreList===first.id).click();assert.equal(c.SavedScores.currentSnapshot().id,old.id);assert.equal(JSON.stringify(old.rows),oldRows);assert.match(h.ids.get('viewSummary').innerHTML,/当时保存的分数/);
  h.ids.get('btnModeDetail').click();assert.match(h.ids.get('viewSummary').innerHTML,/学业成绩/);h.ids.get('btnModeSimple').click();h.ids.get('btnBackSummary').click();assert.equal(h.ids.get('viewSummary').children.filter(e=>e.dataset.scoreList).length,2);
@@ -397,7 +417,7 @@ test('many duplicate reviews are paged one at a time, with progress and unresolv
 
 
 test('saved summary personal drilldown returns to the same frozen result while sidebar entry starts from cards',()=>{
- const h=harness({workspace:true}),c=h.ctx;c.APP.screeningDraft.selectedIds=[c.APP.members[0]._memberId];c.AdminWorkspace.navigate('screening');saveRoster(h);const snap=c.APP.screeningHistory[0];c.AdminWorkspace.navigate('summary');h.ids.get('viewSummary').children.find(e=>e.dataset.scoreList).click();h.ids.get('viewSummary').children.find(e=>e.dataset.savedPerson).click();assert.equal(c.AdminWorkspace.currentPage(),'members');assert.match(h.ids.get('returnToRoster').textContent,/名单积分汇总/);h.ids.get('returnToRoster').click();assert.equal(c.SavedScores.currentSnapshot().id,snap.id);assert(h.ids.has('summaryTable'));
+ const h=harness({workspace:true}),c=h.ctx;c.APP.screeningDraft.selectedIds=[c.APP.members[0]._memberId];c.AdminWorkspace.navigate('screening');saveRoster(h);const snap=c.APP.screeningHistory[0];c.APP.developmentLists[0].scoreMode='frozen';c.AdminWorkspace.navigate('summary');h.ids.get('viewSummary').children.find(e=>e.dataset.scoreList).click();h.ids.get('viewSummary').children.find(e=>e.dataset.savedPerson).click();assert.equal(c.AdminWorkspace.currentPage(),'members');assert.match(h.ids.get('returnToRoster').textContent,/名单积分汇总/);h.ids.get('returnToRoster').click();assert.equal(c.SavedScores.currentSnapshot().id,snap.id);assert(h.ids.has('summaryTable'));
  c.AdminWorkspace.navigate('dashboard');c.AdminWorkspace.navigate('summary');assert(h.ids.get('viewSummary').children.some(e=>e.dataset.scoreList));
 });
 
