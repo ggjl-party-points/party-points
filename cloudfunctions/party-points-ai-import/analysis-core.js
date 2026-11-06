@@ -18,6 +18,7 @@ function validateRequest(items,catalog){
  if(total>MAX_TOTAL)fail('本次材料文字过多，请分批分析。');return{items:safe,catalog:cat};
 }
 function separatorOnly(text){return /^[\s|｜;；,，、。:：]*$/.test(text);}
+function hasMultipleOccurrences(text){return /(?:[2-9]\d*|两|二|三|四|五|六|七|八|九|十|多)\s*次/.test(String(text||''));}
 function validateResponse(request,payload){
  var input=validateRequest(request.items,request.catalog);
  if(!payload||!Array.isArray(payload.results)||payload.results.length!==input.items.length)fail('AI 返回条目不完整，未采用结果。');
@@ -30,11 +31,15 @@ function validateResponse(request,payload){
  var target=clean(p.target,12),type=clean(p.type,36),key=p.option==null?'':String(p.option);
  var rule=input.catalog.find(function(c){return c.target===target&&c.type===type;}),option=rule&&rule.options.find(function(o){return o.key===key;});
  var missing=Array.isArray(p.missing)?p.missing.filter(function(s){return typeof s==='string';}).slice(0,5).map(function(s){return s.slice(0,120);}):[];
+ if(target==='pt-0'&&!/党课|党校|发展对象.{0,8}培训|积极分子.{0,8}培训|党员.{0,8}(教育|培训)/.test(quote)){target='';type='';key='';rule=null;option=null;missing.push('原文没有明确党课或党校培训依据，请按评分细则人工分类。');}
+ var multiple=source.source==='award'&&(hasMultipleOccurrences(source.text)||p.multipleOccurrences===true),materialKind=p.materialKind==='annotation'?'annotation':'achievement';
+ if(multiple)missing.push('同一赛事不同阶段，还是多场独立比赛？需核实场次，不能按次数直接翻倍计分。');
+ if(materialKind==='annotation'){target='';type='';key='';rule=null;option=null;missing.push('疑似补充说明，不是独立计分项目，请人工确认。');}
  var needsReview=p.needsReview!==false||!option||!!missing.length;
- return{raw:quote,target:rule?target:'',type:rule?type:'',option:option?key:'',reason:clean(p.reason,350),missing:missing,needsReview:needsReview,confidence:typeof p.confidence==='number'?Math.max(0,Math.min(1,p.confidence)):0};
+ return{raw:quote,multipleOccurrences:multiple,materialKind:materialKind,target:rule?target:'',type:rule?type:'',option:option?key:'',reason:clean(p.reason,350),missing:missing,needsReview:needsReview,confidence:typeof p.confidence==='number'?Math.max(0,Math.min(1,p.confidence)):0};
  });
  if(!separatorOnly(source.text.slice(cursor)))fail('AI 遗漏了原文尾部，未采用结果。');return{id:source.id,parts:parts};
  });
 }
-return{VERSION:VERSION,MAX_ITEMS:MAX_ITEMS,MAX_TEXT:MAX_TEXT,MAX_TOTAL:MAX_TOTAL,validateRequest:validateRequest,validateResponse:validateResponse};
+return{VERSION:VERSION,MAX_ITEMS:MAX_ITEMS,MAX_TEXT:MAX_TEXT,MAX_TOTAL:MAX_TOTAL,hasMultipleOccurrences:hasMultipleOccurrences,validateRequest:validateRequest,validateResponse:validateResponse};
 });
