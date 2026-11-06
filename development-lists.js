@@ -23,10 +23,10 @@
     if(!name)throw Error('请填写名单名称。');if(!/^20\d{2}$/.test(year))throw Error('请填写四位年度，例如2026。');
     if(s.developmentLists.some(function(l){return l.name===name&&l.year===year;}))throw Error('该年度已有同名发展名单，请换一个名称。');
     var ids=opt.memberIds||s.screeningDraft.selectedIds,active=new Set(s.members.map(function(m){return m._memberId;})),now=new Date().toISOString();
-    var list={id:BatchCore.id('list'),name:name,year:year,memberIds:Array.from(new Set(ids.filter(function(id){return active.has(id);}))),period:opt.period||'',createdAt:now,updatedAt:now};s.developmentLists.push(list);select(s,list.id);return list;
+    var list={id:BatchCore.id('list'),name:name,year:year,memberIds:Array.from(new Set(ids.filter(function(id){return active.has(id);}))),scoreMode:'live',period:opt.period||'',createdAt:now,updatedAt:now};s.developmentLists.push(list);select(s,list.id);return list;
   }
   function select(s,id){ensure(s);var list=s.developmentLists.find(function(l){return l.id===id;});if(!list)throw Error('发展名单不存在。');s.screeningDraft.listId=id;s.screeningDraft.selectedIds=list.memberIds.slice();s.screeningDraft.name=list.name;s.screeningDraft.period=list.period||'';return list;}
-  function sync(s){ensure(s);var list=current(s);if(!list)return;var ids=s.screeningDraft.selectedIds.slice(),period=s.screeningDraft.period||'';if(JSON.stringify(ids)!==JSON.stringify(list.memberIds)||period!==list.period){list.memberIds=ids;list.period=period;list.updatedAt=new Date().toISOString();}}
+  function sync(s){ensure(s);var list=current(s);if(!list||list.scoreMode!=='live')return;var ids=s.screeningDraft.selectedIds.slice(),period=s.screeningDraft.period||'';if(JSON.stringify(ids)!==JSON.stringify(list.memberIds)||period!==list.period){list.memberIds=ids;list.period=period;list.updatedAt=new Date().toISOString();}}
   function remove(s,id){ensure(s);var i=s.developmentLists.findIndex(function(l){return l.id===id;});if(i<0)throw Error('发展名单不存在。');s.developmentLists.splice(i,1);if(s.screeningDraft.listId===id){s.screeningDraft={selectedIds:[],name:'',period:'',listId:''};}}
   root.DevelopmentLists={ensure:ensure,ordered:ordered,current:current,create:create,select:select,sync:sync,remove:remove};
 })(typeof window!=='undefined'?window:globalThis);

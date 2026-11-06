@@ -7,7 +7,7 @@
   function ensure(){L.ensure(APP);}
   function date(value){return value?new Date(value).toLocaleString('zh-CN',{hour12:false}):'历史数据，时间未知';}
   function scores(){return C.scoreRows(APP,function(m){classifyMember(m);return calc(m,false);}).map(function(r){r.batches=APP.developmentLists.filter(function(l){return l.memberIds.indexOf(r.memberId)>=0;}).map(function(l){return l.name;}).join('、')||'尚未加入名单';return r;});}
-  function persist(){L.sync(APP);sv();}
+  function persist(){var list=L.current(APP);if(list&&list.scoreMode!=='live'&&JSON.stringify(list.memberIds)!==JSON.stringify(APP.screeningDraft.selectedIds)){APP.screeningDraft.listId='';APP.screeningDraft.name='';toast('原名单已定稿，当前勾选作为新名单草稿；原名单和分数保留。');}L.sync(APP);sv();}
   function option(value,label,chosen){return '<option value="'+safe(value)+'"'+(value===chosen?' selected':'')+'>'+safe(label)+'</option>';}
   function options(chosen,all){return(all?option('','全部导入记录',chosen):'')+APP.batches.map(function(b){return option(b.id,b.name,chosen);}).join('');}
   function openDialog(title,body,actions){
@@ -53,12 +53,12 @@
     var active=L.current(APP),lists=L.ordered(APP),classes=Array.from(new Set(rows.map(function(r){return r.className;}))).sort(function(a,b){return a.localeCompare(b,'zh-CN');});
     var visibleRows=rows.filter(passes).sort(function(a,b){return a.className.localeCompare(b.className,'zh-CN')||a.name.localeCompare(b.name,'zh-CN');});
     body.innerHTML=importReceiptHtml()+'<div class="workflow-heading"><div><h2>发展名单</h2><p>先从全部成员勾选，再保存为某年度的发展对象名单；下次可直接沿用。</p></div><button class="btn btn-g" data-workflow="back">返回人员与积分</button></div>'+
-      '<section class="roster-current roster-compact"><div class="roster-title"><span>当前名单</span><h3>'+safe(active?active.name:'临时选择')+'</h3><p>'+selectionSummary(rows)+(active?' · 选人自动保存，分数以最后保存为准':' · 跨范围勾选会持续累加')+'</p></div><div class="roster-current-actions"><button class="btn btn-p" data-workflow="save-screening">保存名单和分数</button><button class="btn" data-workflow="create-batch">新建 / 另存名单</button><button class="btn" data-workflow="manage-lists">管理名单</button></div></section>'+
+      '<section class="roster-current roster-compact"><div class="roster-title"><span>当前名单</span><h3>'+safe(active?active.name:'临时选择')+'</h3><p>'+selectionSummary(rows)+(active?' · 未定稿批次实时更新；历史批次保持冻结':' · 跨范围勾选会持续累加')+'</p></div><div class="roster-current-actions"><button class="btn btn-p" data-workflow="save-screening">保存名单和分数</button><button class="btn" data-workflow="create-batch">新建 / 另存名单</button><button class="btn" data-workflow="manage-lists">管理名单</button></div></section>'+
       '<div class="roster-view-tabs"><button class="btn '+(filters.selectedOnly?'btn-p':'')+'" data-workflow="show-selection">查看全部已选（'+chosen.length+'人）</button><button class="btn '+(!filters.selectedOnly?'btn-p':'')+'" data-workflow="reset-filters">全部成员 / 添加人员</button><span>显示 '+visibleRows.length+' 人</span></div>'+
       '<details class="roster-search-tools"><summary>查找 / 从已有名单选人</summary><div class="workflow-filters"><label>从哪里找人<select id="developmentListSelect">'+option('','全部成员',filters.listScope)+lists.map(function(l){return option(l.id,l.name,filters.listScope);}).join('')+'</select></label><label>姓名或学号<input id="workflowSearch" type="search" value="'+safe(filters.q)+'" placeholder="姓名、班级或学号"></label><label>班级<select id="workflowClass">'+option('','全部班级',filters.className)+classes.map(function(c){return option(c,c,filters.className);}).join('')+'</select></label><label>审核<select id="workflowReview">'+option('','全部',filters.review)+option('pending','仍有待审核',filters.review)+option('ready','无待审核项',filters.review)+'</select></label><input id="workflowSelectedOnly" type="checkbox" class="hide"'+(filters.selectedOnly?' checked':'')+'><input id="workflowMin" type="hidden" value=""><input id="workflowMax" type="hidden" value=""><select id="workflowBatch" class="hide">'+options('',true)+'</select></div><p>这里只改变显示范围，不会清除已勾选的人。用“查看全部已选”核对完整名单。</p></details>'+
       '<div class="workflow-actions roster-selection-actions"><button class="btn" data-workflow="select-visible">勾选当前显示的成员</button><button class="btn" data-workflow="unselect-visible">取消当前显示的勾选</button><button class="btn btn-g" data-workflow="clear-selection">清空当前勾选</button><span id="workflowSelectionSummary">'+selectionSummary(rows)+'</span></div>'+
       '<div id="workflowRoster">'+table(visibleRows,true)+'</div>'+
-      '<div class="roster-save-note">'+(active&&active.savedAt?'上次保存名单分数：'+safe(date(active.savedAt)):'点击上方“保存名单和分数”即可留存本轮结果。')+' 后续补材料不会改写此前保存的分数。</div>'+
+      '<div class="roster-save-note">'+(active&&active.savedAt?'上次保存名单分数：'+safe(date(active.savedAt)):'点击上方“保存名单和分数”即可留存本轮结果。')+' 未定稿名单实时更新，定稿后保存历史分数。</div>'+
       '<details class="workflow-history '+((window.AdminWorkspace&&AdminWorkspace.currentPage()==='history')?'':'hide')+'" open><summary>查看已保存的历史积分结果（'+APP.screeningHistory.length+'份）</summary>'+APP.screeningHistory.slice().reverse().map(function(s){return '<div class="workflow-history-row"><div><strong>'+safe(s.name)+'</strong><small>'+safe(date(s.createdAt))+' · '+s.rows.length+' 人 · '+safe(s.status)+' · '+safe(s.period)+'</small></div><button class="btn btn-s" data-history-view="'+safe(s.id)+'">查看</button><button class="btn btn-s" data-history-export="'+safe(s.id)+'">导出</button><button class="btn btn-s" data-history-select="'+safe(s.id)+'">沿用这份人员</button></div>';}).join('')+'</details>';
     byId('developmentListSelect').value=filters.listScope||'';byId('workflowClass').value=filters.className||'';
     byId('developmentListSelect').onchange=function(){filters.listScope=this.value;filters.selectedOnly=false;filters.className='';filters.q='';render();};
@@ -111,8 +111,8 @@
   }
   function createBatch(copyId){
     var source=copyId?APP.developmentLists.find(function(l){return l.id===copyId;}):null,year=String(new Date().getFullYear());
-    openDialog('保存发展名单','<label class="workflow-field">年度<input id="developmentYear" type="number" min="2000" max="2099" value="'+year+'"></label><label class="workflow-field">名单名称<input id="newBatchName" maxlength="80" placeholder="例如：'+year+'年第二批发展对象"></label><p>'+(source?'沿用“'+safe(source.name)+'”的 '+source.memberIds.length+' 位成员，原名单保持不变。':'将当前勾选的 '+APP.screeningDraft.selectedIds.length+' 位成员保存成名单。')+' 保存后仍可随时勾选或取消。</p>','<button class="btn btn-p" id="confirmNewBatch">保存名单</button>');
-    byId('confirmNewBatch').onclick=function(){try{if(_cloudConflict)throw Error('请先处理保存冲突。');if(!(source?source.memberIds:APP.screeningDraft.selectedIds).length)throw Error('请先勾选至少一位同学，再保存名单和分数。');L.create(APP,{name:byId('newBatchName').value,year:byId('developmentYear').value,memberIds:source?source.memberIds.slice():APP.screeningDraft.selectedIds.slice(),period:source?source.period:APP.screeningDraft.period});SavedScores.saveActive();svNow();closeDialog();render();toast('名单和当前分数已一并保存，后续补录不会改写这次结果。');}catch(e){alert(e.message);}};
+    openDialog('保存发展名单','<label class="workflow-field">年度<input id="developmentYear" type="number" min="2000" max="2099" value="'+year+'"></label><label class="workflow-field">名单名称<input id="newBatchName" maxlength="80" placeholder="例如：'+year+'年第二批发展对象"></label><p>'+(source?'沿用“'+safe(source.name)+'”的 '+source.memberIds.length+' 位成员，原名单保持不变。':'将当前勾选的 '+APP.screeningDraft.selectedIds.length+' 位成员保存成名单。')+' 未定稿时可继续勾选；到汇总页定稿后固定本批结果。</p>','<button class="btn btn-p" id="confirmNewBatch">保存名单</button>');
+    byId('confirmNewBatch').onclick=function(){try{if(_cloudConflict)throw Error('请先处理保存冲突。');if(!(source?source.memberIds:APP.screeningDraft.selectedIds).length)throw Error('请先勾选至少一位同学，再保存名单和分数。');L.create(APP,{name:byId('newBatchName').value,year:byId('developmentYear').value,memberIds:source?source.memberIds.slice():APP.screeningDraft.selectedIds.slice(),period:source?source.period:APP.screeningDraft.period});SavedScores.saveActive();svNow();closeDialog();render();toast('名单已保存，积分汇总将实时更新；到汇总页定稿后冻结。');}catch(e){alert(e.message);}};
   }
   function renameList(id){
     var list=APP.developmentLists.find(function(l){return l.id===id;});if(!list)return;
@@ -180,7 +180,7 @@
     openDialog('手动录入人员（下一步核对导入记录）','<div class="workflow-save-fields">'+fields.map(function(f,i){return '<label>'+safe(f)+(i<2?' *':'')+(i>=10?'<textarea id="manualField'+i+'" rows="3"></textarea>':'<input id="manualField'+i+'" type="text">')+'</label>';}).join('')+'</div>','<button class="btn btn-p" id="previewManualMember">下一步：预览导入</button>');
     byId('previewManualMember').onclick=function(){var row={};fields.forEach(function(f,i){row[f]=byId('manualField'+i).value;});previewImport([row],'手动录入');};
   }
-  function saveScreening(){try{if(_cloudConflict)throw Error('请先处理保存冲突。');var rows=scores(),pending=C.selectedRows(APP,rows).some(function(r){return r.uncertain>0;});if(pending&&!confirm('名单中仍有待审核材料，保存的分数将标为待审核。继续？'))return;var snap=SavedScores.saveActive();svNow();render();toast('已保存 '+snap.rows.length+' 人的名单和当时分数。');}catch(e){alert(e.message);}}
+  function saveScreening(){try{if(_cloudConflict)throw Error('请先处理保存冲突。');var rows=scores(),pending=C.selectedRows(APP,rows).some(function(r){return r.uncertain>0;});if(pending&&!confirm('名单中仍有待审核材料，保存的分数将标为待审核。继续？'))return;var snap=SavedScores.saveActive();svNow();render();toast('已保存 '+snap.rows.length+' 人；未定稿汇总会继续实时更新。');}catch(e){alert(e.message);}}
   function viewHistory(id){
     var s=APP.screeningHistory.find(function(x){return x.id===id;});if(!s)return;historyId=id;
     openDialog(s.name,'<p>'+safe(date(s.createdAt))+' · '+safe(s.period)+' · '+safe(s.status)+'</p><p class="workflow-note">这是当时留存的结果，不会随现有人员资料或规则改变。系数：'+s.coefficient+'；评分版本：'+safe(s.criteriaVersion)+'</p>'+table(s.rows,false),'<button class="btn btn-p" id="exportOpenHistory">导出这次结果</button>');
@@ -195,9 +195,9 @@
     exportSnapshot({name:APP.screeningDraft.name||'当前勾选名单',period:C.MATERIAL_SCOPE,createdAt:new Date().toISOString(),rows:rows,rules:APP.rules,criteriaVersion:APP.criteriaVersion,coefficient:1,status:'当前暂计结果'});
   }
   function exportSnapshot(s){
-    if(!s)return;var rows=[['名次','学号','姓名','班级','所属发展名单','学业能力','党性成长','纪律约束','总分','待审核项数','审核状态','资料更新时间','筛选名称','材料累计范围','结果留存时间']];
-    s.rows.forEach(function(r){rows.push([r.rank==null?'不参与排名':r.rank,r.studentId,r.name,r.className,r.batches,r.acT,r.ptT,r.dcT,r.total,r.uncertain,r.uncertain?'待审核':'无待审核项',date(r.updatedAt),s.name,s.period,date(s.createdAt)]);});
-    var ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=[8,18,14,24,30,12,12,12,12,14,16,24,28,40,24].map(function(n){return{wch:n};});
+    if(!s)return;var rows=[['名次','姓名','班级','所属发展名单','学业能力','党性成长','纪律约束','总分','待审核项数','审核状态','资料更新时间','筛选名称','材料累计范围','结果留存时间']];
+    s.rows.forEach(function(r){rows.push([r.rank==null?'不参与排名':r.rank,r.name,r.className,r.batches,r.acT,r.ptT,r.dcT,r.total,r.uncertain,r.uncertain?'待审核':'无待审核项',date(r.updatedAt),s.name,s.period,date(s.createdAt)]);});
+    var ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=[8,14,24,30,12,12,12,12,14,16,24,28,40,24].map(function(n){return{wch:n};});
     var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'本次筛选结果');
     var rules=[['规则路径','留存值'],['评分版本',s.criteriaVersion],['本次计分系数',s.coefficient],['结果状态',s.status]];
     function flatten(v,path){if(v&&typeof v==='object')Object.keys(v).forEach(function(k){flatten(v[k],path?path+'.'+k:k);});else rules.push([path,v]);}flatten(s.rules,'评分标准');
