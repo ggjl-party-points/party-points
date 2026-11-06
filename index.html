@@ -6,6 +6,7 @@
 <title>党员发展积分管理系统 · 国际交流学院</title>
 <script src="xlsx.full.min.js"></script>
 <link rel="stylesheet" href="style.css?v=review-summary-40">
+<link rel="stylesheet" href="responsive.css?v=responsive-41">
 </head>
 <body>
 <div class="topbar">
@@ -22,6 +23,7 @@
     <div class="topbar-more">
       <button type="button" class="btn btn-o" id="btnMore">⋮ 更多</button>
       <div class="topbar-more-menu" id="topbarMoreMenu">
+        <div class="topbar-menu-college">国际交流学院</div>
         <button type="button" class="btn" id="testAiSamples">AI分类诊断（维护用）</button>
         <button class="btn" id="btnTpl">📥 下载模板</button>
         <button class="btn" id="btnBackup">📦 备份数据</button>
@@ -321,9 +323,9 @@
 <script src="ai-import-classification.js?v=annotation-39"></script>
 <script src="batches.js?v=summary-lifecycle-40"></script>
 <section id="workspaceRecycle" class="hide"></section><section id="workspaceAudit" class="hide"></section>
-<script src="workspace.js?v=roster-flow-23"></script>
+<script src="workspace.js?v=responsive-41"></script>
 <script src="saved-scores-core.js?v=summary-lifecycle-40"></script>
-<script src="saved-scores.js?v=summary-lifecycle-40"></script>
+<script src="saved-scores.js?v=responsive-41"></script>
 <script src="roster-navigation.js?v=return-layout-24"></script>
 <script src="admin-tools.js?v=modal-guard-27"></script>
 <script>document.getElementById("loginAccountPwd").addEventListener("keydown",function(e){if(e.key==="Enter")tryLogin();});</script>
@@ -334,5 +336,6 @@ document.addEventListener('click',function(e){if(!e.target.closest('.topbar-more
 <script src="ai-import-samples.js?v=context-v3"></script>
 <script src="ai-import-drafts.js?v=draft-split-35"></script>
 <script src="ai-import.js?v=optional-split-40"></script>
+<script src="responsive-ui.js?v=responsive-41"></script>
 </body>
 </html>
