@@ -1,0 +1,4 @@
+function _applyAiReviewItems(m){(m._aiReviewItems||[]).forEach(function(p){var key=BatchCore.materialKey(p.raw);['ac','pt','dc'].forEach(function(cat){m._cl[cat].forEach(function(arr){for(var i=arr.length-1;i>=0;i--)if(BatchCore.materialKey(arr[i].raw)===key)arr.splice(i,1);});});m._unc=m._unc.filter(function(u){return BatchCore.materialKey(u.raw)!==key;});if(p.excluded===true)return;var v=String(p.target||'').split('-'),board=v[0],si=Number(v[1]);m._unc.push({type:'ai-review',raw:p.raw,cl:{c:board==='pt'?'party':board||'?',i:Number.isInteger(si)?si:-1,n:'AI材料待人工确认',cf:0.4,pts:0,p:0,reviewReason:p.reason||'AI建议未经人工确认，暂不计分。'}});});}
+
+// END_CLASSIFICATION_HOOK
+if(typeof APP!=='undefined'&&Array.isArray(APP.members)){APP.members.forEach(function(m){if((m._aiReviewItems||[]).some(function(p){return p.excluded===true;}))m._ok=false;});}

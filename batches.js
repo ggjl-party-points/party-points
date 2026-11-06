@@ -144,13 +144,14 @@
     }
     show();if(!dialog.open)dialog.showModal();byId('materialReviewClose').onclick=function(){dialog.close();};
   }
-  function previewImport(rows,source){
-    if(CLOUD_ENABLED&&!_cloudKey){toast('请先登录管理员账号。','err');return;}
+  function previewImport(rows,source,aiReview){
+    if(aiReview&&window.AiImportPlan){try{AiImportPlan.assertCurrent(aiReview,APP);}catch(e){toast(e.message,'err');return false;}}
+    if(CLOUD_ENABLED&&!_cloudKey){toast('请先登录管理员账号。','err');return false;}
     ensure();APP.members.forEach(_captureManualItems);previewPlan=C.planImport(APP,rows);importSource=source||'手动录入';
     var p=previewPlan,c=p.counts;
-    if(!p.entries.length){toast('没有可导入的学生数据；已跳过空行和模板示例。','err');return;}
+    if(!p.entries.length){toast('没有可导入的学生数据；已跳过空行和模板示例。','err');return false;}
     openDialog('导入前核对','<p class="workflow-note">'+safe(importSource)+'：新增 '+c.new+' 人，更新 '+c.update+' 人，无变化 '+c.unchanged+' 人，身份冲突 '+c.conflict+' 行。只追加或更新，不清空历史人员。</p>'+
-      '<div class="workflow-import-settings"><label>导入记录<select id="importBatch">'+option('','＋新建导入记录','')+options('',false)+'</select></label><label id="importBatchNameWrap">导入记录名称<input id="importBatchName" maxlength="60" placeholder="例如：2026年第二批"></label></div>'+
+      (aiReview&&aiReview.materialPartitions&&aiReview.materialPartitions.length?'<p class="workflow-note">已拆分 '+aiReview.materialPartitions.length+' 段原文。导入时用拆分条目替换完全相同的旧整段，原文另行留存，不将整段与子项重复计分。</p>':'')+'<div class="workflow-import-settings"><label>导入记录<select id="importBatch">'+option('','＋新建导入记录','')+options('',false)+'</select></label><label id="importBatchNameWrap">导入记录名称<input id="importBatchName" maxlength="60" placeholder="例如：2026年第二批"></label></div>'+
       '<div class="workflow-table-wrap"><table class="workflow-table"><thead><tr><th>原表行</th><th>姓名／学号</th><th>班级</th><th>处理</th><th>核对事项／变化</th></tr></thead><tbody>'+p.entries.map(function(e){return '<tr><td>'+e.row+'</td><td>'+safe(e.data['姓名'])+'<small>'+safe(e.data['学号']||'未填学号')+'</small></td><td>'+safe(e.data['班级'])+'</td><td>'+({new:'新增',update:'更新',unchanged:'材料无变化',conflict:'暂不导入'})[e.status]+'</td><td>'+safe(e.reason)+materialReviewHtml(e)+(e.changes.length?'<details><summary>查看 '+e.changes.length+' 处变化</summary>'+e.changes.map(function(d){return '<p><b>'+safe(d.field)+'</b><br>原：'+safe(d.before)+'<br>新：'+safe(d.after)+'</p>';}).join('')+'</details>':'')+'</td></tr>';}).join('')+'</tbody></table></div>'+
       (c.conflict?'<label class="workflow-check"><input id="skipImportConflicts" type="checkbox">我确认跳过 '+c.conflict+' 行身份冲突，只导入已核对的人员；冲突行需要修改原表后重新导入。</label>':'')+
       '<p>奖项与活动按完整条目追加去重；其他非空资料按预览更新。请特别核对排名、时长、是否挂科等变化。</p>',
@@ -160,16 +161,18 @@
     byId('importBatch').onchange=function(){byId('importBatchNameWrap').classList.toggle('hide',!!this.value);};
     byId('cancelWorkflowImport').onclick=closeDialog;
     byId('commitWorkflowImport').onclick=function(){
-      try{if(_cloudConflict)throw new Error('云端存在新版本，请先处理保存冲突。');var result=C.applyImport(APP,previewPlan,{batchId:byId('importBatch').value,batchName:byId('importBatchName').value,skipConflicts:!!(byId('skipImportConflicts')&&byId('skipImportConflicts').checked)});
-        importReceipt=result;APP.screeningDraft.listId='';closeDialog();filters={q:'',batch:'',review:'',min:'',max:'',selectedOnly:false,className:'',listScope:''};_writeLocal();svNow();open();if(window.AdminWorkspace)window.AdminWorkspace.navigate('screening');toast('导入完成。本次导入人员已勾选，可切到全部成员中继续勾选老同学。');
+      try{if(_cloudConflict)throw new Error('云端存在新版本，请先处理保存冲突。');if(aiReview)AiImportPlan.assertCurrent(aiReview,APP);var destination=aiReview?C.clone(APP):APP;var result=C.applyImport(destination,previewPlan,{batchId:byId('importBatch').value,batchName:byId('importBatchName').value,skipConflicts:!!(byId('skipImportConflicts')&&byId('skipImportConflicts').checked)});
+        if(aiReview){AiImportPlan.apply(destination,aiReview,result);if(CLOUD_ENABLED&&new TextEncoder().encode(JSON.stringify(destination)).length>700000)throw Error('AI确认记录使数据接近云端容量上限，已停止导入且未修改现有人员；请先联系维护人员处理存储容量。');APP=destination;R=APP.rules;}
+        importReceipt=result;APP.screeningDraft.listId='';closeDialog();filters={q:'',batch:'',review:'',min:'',max:'',selectedOnly:false,className:'',listScope:''};_writeLocal();svNow();if(aiReview&&window.AiImport)AiImport.importCommitted(aiReview.draftId);open();if(window.AdminWorkspace)window.AdminWorkspace.navigate('screening');toast('导入完成。本次导入人员已勾选，可切到全部成员中继续勾选老同学。');
       }catch(e){alert(e.message);}
     };
+    return true;
   }
   async function readImportFile(file){
     setProcessLoading(true);
     try{var bytes=await file.arrayBuffer(),wb=XLSX.read(new Uint8Array(bytes),{type:'array'}),sheet=wb.Sheets[wb.SheetNames[0]];
       // Read identifiers as displayed text, preserving explicit text/zero-padding.
-      var rows=XLSX.utils.sheet_to_json(sheet,{defval:'',raw:false});previewImport(rows,file.name);
+      var rows=XLSX.utils.sheet_to_json(sheet,{defval:'',raw:false});if(byId('useAiImport')&&byId('useAiImport').checked&&window.AiImport){AiImport.open(rows,file.name);return;}previewImport(rows,file.name);
     }catch(e){toast('读取失败：'+e.message,'err');}finally{setProcessLoading(false);}
   }
   function addMember(){
