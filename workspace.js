@@ -2,7 +2,7 @@
   'use strict';
   var C=window.BatchCore,current='dashboard',routing=false,peopleQuery='',peopleClass='',peopleScope='';
   var initialNavToggle=document.getElementById('workspaceNavToggle');
-  var pages={dashboard:'工作台',import:'资料导入',members:'人员与积分',screening:'发展名单',review:'待审核材料',summary:'名单积分汇总',history:'历史筛选结果',criteria:'评分标准',backup:'备份与恢复',recycle:'人员回收站',audit:'修改记录'};
+  var pages={dashboard:'工作台',import:'资料导入',members:'人员与积分',screening:'发展名单',review:'待审核材料',summary:'名单积分汇总',history:'历史筛选结果',criteria:'评分标准',backup:'备份与恢复',recycle:'回收站',audit:'修改记录'};
   var panelIds=['workspaceDashboard','workspaceImport','workspaceMembers','workspaceReview','workspaceCriteria','workspaceBackup','workspaceRecycle','workspaceAudit','workflowView','viewSummary'];
   function el(id){return document.getElementById(id);}
   function safe(v){return esc(v==null?'':String(v));}
@@ -87,7 +87,7 @@
     var count=0,q=peopleQuery.toLowerCase();
     el('memberList').querySelectorAll('.mitem').forEach(function(row){
       var index=Number(row.getAttribute('data-mi')),m=APP.members[index];
-      var show=!!m&&(!peopleScope||APP.developmentLists.some(function(l){return l.id===peopleScope&&l.memberIds.indexOf(m._memberId)>=0;}))&&(!peopleClass||String(m['班级']||'')===peopleClass)&&(!q||[m['姓名'],m['班级'],m['学号']].join(' ').toLowerCase().indexOf(q)>=0);
+      var show=!!m&&(!peopleScope||APP.developmentLists.some(function(l){return l.id===peopleScope&&!l.summaryDeletedAt&&l.memberIds.indexOf(m._memberId)>=0;}))&&(!peopleClass||String(m['班级']||'')===peopleClass)&&(!q||[m['姓名'],m['班级'],m['学号']].join(' ').toLowerCase().indexOf(q)>=0);
       row.style.display=show?'':'none';if(show)count++;
       row.onmouseenter=null;row.onmouseleave=null;
     });
@@ -95,7 +95,7 @@
     el('memberSearchEmpty').classList.toggle('hide',count>0||APP.members.length===0);
   }
   function syncPeopleFilters(){
-    DevelopmentLists.ensure(APP);if(peopleScope&&!APP.developmentLists.some(function(l){return l.id===peopleScope;}))peopleScope='';
+    DevelopmentLists.ensure(APP);if(peopleScope&&!APP.developmentLists.some(function(l){return l.id===peopleScope&&!l.summaryDeletedAt;}))peopleScope='';
     el('memberListScope').innerHTML='<option value="">全部成员</option>'+DevelopmentLists.ordered(APP).map(function(l){return '<option value="'+safe(l.id)+'">'+safe(l.name)+'</option>';}).join('');el('memberListScope').value=peopleScope;
 
     var classes=Array.from(new Set(APP.members.map(function(m){return String(m['班级']||'');}).filter(Boolean))).sort(function(a,b){return a.localeCompare(b,'zh-CN');});
@@ -167,7 +167,7 @@
     if(_cloudConflict){toast('请先处理云端保存冲突。','err');return;}
     var m=APP.members[APP.curIdx];if(!m)return;
     if(!confirm('将“'+m['姓名']+'”移入回收站？可随时单独恢复，历史筛选结果保留。'))return;
-    _captureManualItems(m);AdminCore.archive(APP,m._memberId);svNow();navigate('members');toast('已移入人员回收站，可从左侧导航恢复。请确认云端保存状态。');
+    _captureManualItems(m);AdminCore.archive(APP,m._memberId);svNow();navigate('members');toast('已移入回收站的“人员”标签，可从左侧导航恢复。请确认云端保存状态。');
   };
   window.AdminWorkspace={navigate:navigate,currentPage:function(){return current;},refresh:refresh};
   navigate('dashboard');

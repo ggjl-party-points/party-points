@@ -13,10 +13,10 @@
     }
     var activeIds=new Set(s.members.map(function(m){return m._memberId;}));
     s.developmentLists.forEach(function(l){l.memberIds=Array.from(new Set((l.memberIds||[]).filter(function(id){return activeIds.has(id);})));});
-    if(s.screeningDraft.listId&&!s.developmentLists.some(function(l){return l.id===s.screeningDraft.listId;}))s.screeningDraft.listId='';
+    if(s.screeningDraft.listId&&!s.developmentLists.some(function(l){return l.id===s.screeningDraft.listId&&!l.summaryDeletedAt;}))s.screeningDraft.listId='';
     return s;
   }
-  function ordered(s){ensure(s);return s.developmentLists.slice().sort(function(a,b){return String(b.updatedAt||b.createdAt||'').localeCompare(String(a.updatedAt||a.createdAt||''))||String(b.year).localeCompare(String(a.year));});}
+  function ordered(s,includeDeleted){ensure(s);return s.developmentLists.filter(function(l){return includeDeleted||!l.summaryDeletedAt;}).sort(function(a,b){return String(b.updatedAt||b.createdAt||'').localeCompare(String(a.updatedAt||a.createdAt||''))||String(b.year).localeCompare(String(a.year));});}
   function current(s){return s.developmentLists.find(function(l){return l.id===s.screeningDraft.listId;})||null;}
   function create(s,opt){
     ensure(s);var name=BatchCore.text(opt.name),year=BatchCore.text(opt.year);
@@ -25,8 +25,8 @@
     var ids=opt.memberIds||s.screeningDraft.selectedIds,active=new Set(s.members.map(function(m){return m._memberId;})),now=new Date().toISOString();
     var list={id:BatchCore.id('list'),name:name,year:year,memberIds:Array.from(new Set(ids.filter(function(id){return active.has(id);}))),scoreMode:'live',period:opt.period||'',createdAt:now,updatedAt:now};s.developmentLists.push(list);select(s,list.id);return list;
   }
-  function select(s,id){ensure(s);var list=s.developmentLists.find(function(l){return l.id===id;});if(!list)throw Error('发展名单不存在。');s.screeningDraft.listId=id;s.screeningDraft.selectedIds=list.memberIds.slice();s.screeningDraft.name=list.name;s.screeningDraft.period=list.period||'';return list;}
-  function sync(s){ensure(s);var list=current(s);if(!list||list.scoreMode!=='live')return;var ids=s.screeningDraft.selectedIds.slice(),period=s.screeningDraft.period||'';if(JSON.stringify(ids)!==JSON.stringify(list.memberIds)||period!==list.period){list.memberIds=ids;list.period=period;list.updatedAt=new Date().toISOString();}}
+  function select(s,id){ensure(s);var list=s.developmentLists.find(function(l){return l.id===id;});if(!list||list.summaryDeletedAt)throw Error('发展名单不存在或已移入回收站。');s.screeningDraft.listId=id;s.screeningDraft.selectedIds=list.memberIds.slice();s.screeningDraft.name=list.name;s.screeningDraft.period=list.period||'';return list;}
+  function sync(s){ensure(s);var list=current(s);if(!list||list.summaryDeletedAt||list.scoreMode!=='live')return;var ids=s.screeningDraft.selectedIds.slice(),period=s.screeningDraft.period||'';if(JSON.stringify(ids)!==JSON.stringify(list.memberIds)||period!==list.period){list.memberIds=ids;list.period=period;list.updatedAt=new Date().toISOString();}}
   function remove(s,id){ensure(s);var i=s.developmentLists.findIndex(function(l){return l.id===id;});if(i<0)throw Error('发展名单不存在。');s.developmentLists.splice(i,1);if(s.screeningDraft.listId===id){s.screeningDraft={selectedIds:[],name:'',period:'',listId:''};}}
   root.DevelopmentLists={ensure:ensure,ordered:ordered,current:current,create:create,select:select,sync:sync,remove:remove};
 })(typeof window!=='undefined'?window:globalThis);
