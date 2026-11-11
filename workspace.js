@@ -81,6 +81,13 @@
   function reviewPage(){
     var rows=pending();el('workspaceReview').innerHTML='<div class="workspace-page-title"><span>材料核对</span><h2>待审核材料</h2><p>这些材料的信息不足以自动确定分数，请结合原始材料核对。确认结果会保留在人员明细中。</p></div>'+(rows.length?'<div class="workspace-review-list">'+rows.map(function(r){return '<article><div><strong>'+safe(r.member['姓名'])+'</strong><span>'+safe(r.member['班级'])+'</span><small>'+safe(r.member['学号']||'未补学号')+'</small></div><span class="workspace-review-count">'+r.count+' 项待审核</span><button class="btn btn-p" data-review-member="'+safe(r.member._memberId)+'">核对该同学材料</button></article>';}).join('')+'</div>':'<div class="workspace-help"><h3>目前没有待审核材料</h3><p>后续导入新资料后，无法确定的奖项和职务会显示在这里。</p></div>');
     var start=document.createElement('button');start.type='button';start.className='btn btn-p';start.id='startContinuousReview';start.textContent='开始连续审核';start.disabled=!rows.length;start.onclick=function(){AdminTools.startReview();};el('workspaceReview').insertBefore(start,el('workspaceReview').firstChild);
+    var batch = document.createElement('button');
+    batch.type = 'button';
+    batch.className = 'btn';
+    batch.textContent = '批量审核';
+    batch.disabled = !rows.length;
+    batch.onclick = openGlobalUncertain;
+    el('workspaceReview').insertBefore(batch, el('workspaceReview').firstChild);
     el('workspaceReview').querySelectorAll('[data-review-member]').forEach(function(b){b.onclick=function(){APP.curIdx=APP.members.findIndex(function(m){return m._memberId===b.dataset.reviewMember;});navigate('members');switchMainTab('uncertain');};});
   }
   function applyPeopleFilter(){
