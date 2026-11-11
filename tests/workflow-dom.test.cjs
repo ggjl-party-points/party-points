@@ -23,7 +23,7 @@ function harness(options={}){
  const document={getElementById(id){return ids.get(id)||null;},querySelectorAll(s){return all.filter(e=>matches(e,s));},querySelector(s){return this.querySelectorAll(s)[0]||null;},addEventListener(){},createElement:tag=>element(tag),body:element('body')};
  const storage=new Map(),session=options.session||new Map(),alerts=[],windowEvents={};let download;
  const ctx={document,console,TextEncoder,TextDecoder,btoa:s=>Buffer.from(s,'binary').toString('base64'),atob:s=>Buffer.from(s,'base64').toString('binary'),sessionStorage:{getItem(k){return session.get(k)||null;},setItem(k,v){session.set(k,v);},removeItem(k){session.delete(k);}},crypto:require('node:crypto').webcrypto,Blob,URL:{createObjectURL(blob){download=blob;return'blob:test';},revokeObjectURL(){}},localStorage:{getItem(k){return storage.get(k)||null;},setItem(k,v){storage.set(k,v);},removeItem(k){storage.delete(k);}},setTimeout(){return 1;},clearTimeout(){},addEventListener(name,fn){(windowEvents[name]||(windowEvents[name]=[])).push(fn);},confirm(){return true;},alert(m){alerts.push(m);},cloudbase:{init(){return{};}},XLSX:{},innerWidth:1440};ctx.window=ctx;ctx.location={reload(){}};
- vm.createContext(ctx);['batch-core.js','ai-import-core.js','ai-import-plan.js','development-lists.js','admin-core.js','cloud-sync.js','app.js','ai-import-classification.js','batches.js','manual-dialog.js','scoring-rules-dialog.js','saved-scores-core.js','saved-scores.js'].concat(options.workspace?['workspace.js','roster-navigation.js','admin-tools.js']:[]).concat(['ai-import.js']).concat(options.workspace?['responsive-ui.js']:[]).forEach(f=>vm.runInContext(f==='app.js'?fs.readFileSync(path.join(__dirname,'..',f),'utf8').replace('enabled:true','enabled:false'):fs.readFileSync(path.join(__dirname,'..',f),'utf8'),ctx,{filename:f}));
+ vm.createContext(ctx);['batch-core.js','ai-import-core.js','ai-import-plan.js','development-lists.js','admin-core.js','cloud-sync.js','app.js','ai-import-classification.js','batches.js','manual-dialog.js','scoring-rules-dialog.js','saved-scores-core.js','saved-scores.js'].concat(options.workspace?['workspace.js','roster-navigation.js','admin-tools.js']:[]).concat(['ai-import.js','manual-score.js']).concat(options.workspace?['responsive-ui.js']:[]).forEach(f=>vm.runInContext(f==='app.js'?fs.readFileSync(path.join(__dirname,'..',f),'utf8').replace('enabled:true','enabled:false'):fs.readFileSync(path.join(__dirname,'..',f),'utf8'),ctx,{filename:f}));
  // The fixture contains no private data; disable cloud writes in this isolated context.
  ctx.CLOUD_ENABLED=false;
  ctx.APP={rules:JSON.parse(JSON.stringify(ctx.DEF)),members:[{'姓名':'虚构老同学','班级':'A班','学号':'001'}],learnedMap:{},criteriaVersion:10,curIdx:0};ctx.R=ctx.APP.rules;ctx.BatchCore.ensure(ctx.APP);ctx.DevelopmentLists.ensure(ctx.APP);ctx.AdminCore.ensure(ctx.APP);ctx._auditSnapshot=ctx.AdminCore.snapshot(ctx.APP);ctx._resetMemberChangeSignatures();
@@ -448,6 +448,37 @@ test('position assessment enforces school, college and class bounds and multiple
 });
 test('volunteer decimal hours and all manual activity caps are enforced in the actual total',()=>{
  const h=harness(),c=h.ctx,m=c.APP.members[0];c.classifyMember(m);assert.equal(c.parseVolHours('12.5小时'),12.5);assert.equal(c.parseVolHours('2小时30分钟'),2.5);c.openAddModal('pt',1);h.ids.get('eRaw').value='累计志愿服务';h.ids.get('eScore').value='100';h.ids.get('btnSaveItem').click();assert.equal(m._cl.pt[1][0].score,8);assert.equal(m._cl.pt[1][0].hours,100);m._cl.pt[1].push({raw:'另加志愿条目',score:5});m._cl.pt[4]=Array.from({length:6},(_,i)=>({raw:'国际交流'+i,score:2}));m._cl.pt[2]=Array.from({length:8},(_,i)=>({raw:'线上党史学习'+i,score:1,scoringType:'red-online'})).concat([{raw:'线下参观纪念馆',score:3,scoringType:'red-offline'}]);const fin=c.calc(m,false);assert.equal(fin.pt[1],8);assert.equal(fin.pt[4],8);assert.equal(fin.pt[2],8);
+});
+test('batch custom scores survive reclassification without teaching the score to other records', () => {
+ const h=harness(), c=h.ctx, m=c.APP.members[0];
+ c.classifyMember(m);
+ m._unc=['虚构活动甲','虚构活动乙'].map(raw=>({raw,cl:{c:'party',i:5,n:'同辈互助',cf:.4}}));
+ c.render();
+ h.ids.get('batchCat').value='pt-5';
+ c.onBatchCatChange();
+ h.ids.get('batchLevel').manualScore={points:'0.5',reason:'按本批活动核定'};
+ for (const i of [0,1]) {
+  const box=h.document.createElement('input');
+  box.attrs.class='unc-cb';
+  box.attrs['data-uidx']=String(i);
+  box.checked=true;
+ }
+ c.batchFixHandler();
+ assert.equal(m._unc.length,0);
+ assert.equal(m._cl.pt[5].length,2);
+ assert.equal(c.calc(m,false).pt[5],1);
+ assert.equal(m._cl.pt[5][0].manualScore.ruleScore,2);
+ assert.equal(m._cl.pt[5][0].manualScore.reason,'按本批活动核定');
+ assert.equal(c.APP.learnedMap['虚构活动甲'],undefined);
+ c.reclassAll();
+ c.classifyMember(m);
+ assert.equal(c.calc(m,false).pt[5],1);
+ c.editItem('pt',5,0);
+ assert.equal(h.ids.get('eManualPoints').value,'0.5');
+ h.ids.get('eManualPoints').value='';
+ h.ids.get('btnSaveItem').click();
+ assert.equal(m._cl.pt[5][0].score,2);
+ assert.equal(m._cl.pt[5][0].manualScore,undefined);
 });
 test('batch review uses the same paper mapping and retains type, level and score',()=>{
  const h=harness(),c=h.ctx,m=c.APP.members[0];c.classifyMember(m);m._unc=[{raw:'虚构普通期刊论文',cl:{c:'ac',i:3,n:'学科竞赛',cf:.4}}];c.render();h.ids.get('batchCat').value='ac-3';c.onBatchCatChange();const lv=h.ids.get('batchLevel'),at=lv._scoringChoices.findIndex(x=>x.profile.id==='paper'&&x.option.key==='1');lv.value=String(at);h.ids.get('ulUncertain');const box=h.document.createElement('input');box.attrs.class='unc-cb';box.attrs['data-uidx']='0';box.checked=true;c.batchFixHandler();assert.equal(m._cl.ac[3][0].score,6);assert.equal(m._cl.ac[3][0].scoringType,'paper');assert.equal(m._cl.ac[3][0].level,'省级');
