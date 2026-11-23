@@ -590,14 +590,14 @@ test('detail summary export includes snapshot subitems through both export butto
   h.ids.get(button).click();
   const bytes=XLSX.write(workbook,{type:'buffer',bookType:'xlsx'}),read=XLSX.read(bytes,{type:'buffer'});
   const rows=XLSX.utils.sheet_to_json(read.Sheets[read.SheetNames[0]],{header:1});
-  assert.equal(rows[0].length,31);assert.equal(rows[1].length,31);
-  assert.equal(rows[1].slice(4,21).join(','),'1,2,3,4,5,6,7,8,9,10,11,12,-1,-2,-3,-4,-5');
-  assert.equal(rows[1][rows[0].indexOf('总分')],snap.rows[0].total);
+  assert.equal(rows[0].length,22);assert.equal(rows[1].length,22);assert.equal(read.SheetNames[0],'积分汇总表');assert.equal(read.SheetNames[1],'评分标准');assert.equal(read.Sheets[read.SheetNames[0]]['!merges'].length,7);
+  assert.equal(rows[2].slice(3,20).join(','),'1,2,3,4,5,6,7,8,9,10,11,12,-1,-2,-3,-4,-5');
+  assert.equal(rows[2][21],snap.rows[0].total);
  }
  h.ids.get('btnModeSimple').click();h.ids.get('exportSavedScores').click();
  assert.equal(XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]],{header:1})[0].length,14);
  assert.equal(JSON.stringify(snap),original);
  delete snap.rows[0].ac;h.ids.get('btnModeDetail').click();h.ids.get('exportSavedScores').click();
  const legacy=XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]],{header:1});
- assert(legacy[1].slice(4,10).every(v=>v==='未留存'));
+ assert(legacy[2].slice(3,9).every(v=>v==='未留存'));
 });
