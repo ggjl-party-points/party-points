@@ -194,10 +194,25 @@
     ensure();var rows=C.selectedRows(APP,scores());if(!rows.length){toast('请先勾选参加本次筛选的同学。','err');return;}
     exportSnapshot({name:APP.screeningDraft.name||'当前勾选名单',period:C.MATERIAL_SCOPE,createdAt:new Date().toISOString(),rows:rows,rules:APP.rules,criteriaVersion:APP.criteriaVersion,coefficient:1,status:'当前暂计结果'});
   }
-  function exportSnapshot(s){
+  function exportSnapshot(s,exportMode){
     if(!s)return;var rows=[['名次','姓名','班级','所属发展名单','学业能力','党性成长','纪律约束','总分','待审核项数','审核状态','资料更新时间','筛选名称','材料累计范围','结果留存时间']];
     s.rows.forEach(function(r){rows.push([r.rank==null?'不参与排名':r.rank,r.name,r.className,r.batches,r.acT,r.ptT,r.dcT,r.total,r.uncertain,r.uncertain?'待审核':'无待审核项',date(r.updatedAt),s.name,s.period,date(s.createdAt)]);});
-    var ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=[8,14,24,30,12,12,12,12,14,16,24,28,40,24].map(function(n){return{wch:n};});
+    if(exportMode==='detail'){
+      var detailHeaders=AC.concat(PS,DS);
+      rows[0].splice.apply(rows[0],[4,0].concat(detailHeaders));
+      s.rows.forEach(function(record,index){
+        var details=[];
+        [['ac',AC],['pt',PS],['dc',DS]].forEach(function(group){
+          group[1].forEach(function(label,position){
+            var value=record[group[0]]&&record[group[0]][position];
+            details.push(value==null?'未留存':value);
+          });
+        });
+        rows[index+1].splice.apply(rows[index+1],[4,0].concat(details));
+      });
+    }
+    var ws=XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols']=rows[0].map(function(label,index){return{wch:index===1?14:index===2?24:Math.max(10,Math.min(40,String(label).length*2+4))};});
     var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'本次筛选结果');
     var rules=[['规则路径','留存值'],['评分版本',s.criteriaVersion],['本次计分系数',s.coefficient],['结果状态',s.status]];
     function flatten(v,path){if(v&&typeof v==='object')Object.keys(v).forEach(function(k){flatten(v[k],path?path+'.'+k:k);});else rules.push([path,v]);}flatten(s.rules,'评分标准');
