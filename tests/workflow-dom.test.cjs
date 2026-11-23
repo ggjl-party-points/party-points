@@ -576,3 +576,28 @@ test('unified recycle tabs restore summaries and people independently without th
 test('unified recycle restores an archived historical summary without changing the associated live roster',()=>{
  const h=harness({workspace:true}),c=h.ctx,m=c.APP.members[0];c.APP.screeningDraft.selectedIds=[m._memberId];const l=c.DevelopmentLists.create(c.APP,{year:'2026',name:'保留当前名单'}),s=c.SavedScores.saveActive();s.id='older-snapshot';s.summaryKind='final';l.savedResultId='newer-id';c.SavedScoresCore.recycle(c.APP,null,s);c.svNow();const listBefore=JSON.stringify(l),rowsBefore=JSON.stringify(s.rows);c.AdminTools.openRecycle('summaries');const b=h.ids.get('workspaceRecycle').children.find(b=>b.dataset.restoreSummary===s.id);assert(b);assert.equal(b.dataset.summaryKind,'snapshot');b.click();assert(!s.summaryDeletedAt);assert.equal(JSON.stringify(l),listBefore);assert.equal(JSON.stringify(s.rows),rowsBefore);
 });
+test('detail summary export includes snapshot subitems through both export buttons and preserves simple mode',()=>{
+ const h=harness({workspace:true}),c=h.ctx;
+ c.APP.screeningDraft.selectedIds=[c.APP.members[0]._memberId];
+ const list=c.DevelopmentLists.create(c.APP,{year:'2026',name:'明细导出核对'});
+ const snap=c.SavedScores.saveActive();list.scoreMode='frozen';
+ snap.rows[0].ac=[1,2,3,4,5,6];snap.rows[0].pt=[7,8,9,10,11,12];snap.rows[0].dc=[-1,-2,-3,-4,-5];
+ const original=JSON.stringify(snap),XLSX=require('../xlsx.full.min.js');let workbook;
+ c.XLSX={utils:XLSX.utils,writeFile(wb){workbook=wb;}};
+ c.AdminWorkspace.navigate('summary');h.ids.get('viewSummary').children.find(e=>e.dataset.scoreList===list.id).click();
+ h.ids.get('btnModeDetail').click();
+ for(const button of ['exportSavedScores','btnExport']){
+  h.ids.get(button).click();
+  const bytes=XLSX.write(workbook,{type:'buffer',bookType:'xlsx'}),read=XLSX.read(bytes,{type:'buffer'});
+  const rows=XLSX.utils.sheet_to_json(read.Sheets[read.SheetNames[0]],{header:1});
+  assert.equal(rows[0].length,31);assert.equal(rows[1].length,31);
+  assert.equal(rows[1].slice(4,21).join(','),'1,2,3,4,5,6,7,8,9,10,11,12,-1,-2,-3,-4,-5');
+  assert.equal(rows[1][rows[0].indexOf('总分')],snap.rows[0].total);
+ }
+ h.ids.get('btnModeSimple').click();h.ids.get('exportSavedScores').click();
+ assert.equal(XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]],{header:1})[0].length,14);
+ assert.equal(JSON.stringify(snap),original);
+ delete snap.rows[0].ac;h.ids.get('btnModeDetail').click();h.ids.get('exportSavedScores').click();
+ const legacy=XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]],{header:1});
+ assert(legacy[1].slice(4,10).every(v=>v==='未留存'));
+});

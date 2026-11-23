@@ -226,7 +226,7 @@
 <p>“重新打开编辑”会让本批汇总重新使用最新分数，原定稿结果保留在历史留存结果中。修改已定稿名单的人员勾选，会转成新名单草稿，不悄悄改写原名单。</p>
 <h3>汇总显示、排序与导出</h3>
 <p>简洁模式显示排名、姓名、班级、三大板块和总分；明细模式显示分项。汇总及其 Excel 导出不展示学号列，底层身份字段保留。姓名、班级可换行，手机表格可左右滑动并固定姓名列。</p>
-<p>点击表头切换升序／降序，箭头表示方向。排序只改变显示顺序，不改变按总分计算的名次、积分或历史记录。汇总导出保留当前排序；明细模式的界面分项展示不等于导出文件增加全部分项列。</p>
+<p>点击表头切换升序／降序，箭头表示方向。排序只改变显示顺序，不改变按总分计算的名次、积分或历史记录。汇总导出保留当前排序；明细模式导出全部分项列，简洁模式导出板块小计与总分。</p>
 <p>个人“导出明细”导出该成员当前材料；历史结果导出使用当时保存的数据；实时汇总导出使用当前分数。对外使用前核对人数、姓名、总分及待审核状态，并确认云端保存成功。</p>
 <h2 id="manualChapter5" class="manual-chapter">统一回收站、修改记录和备份</h2>
 <h3>回收站 → 名单汇总</h3>
@@ -297,11 +297,11 @@
 <script src="ai-import-plan.js?v=optional-split-40"></script>
 <script src="app.js?v=annotation-34"></script>
 <script src="ai-import-classification.js?v=annotation-39"></script>
-<script src="batches.js?v=unified-recycle-43"></script>
+<script src="batches.js?v=detail-export-46"></script>
 <section id="workspaceRecycle" class="hide"></section><section id="workspaceAudit" class="hide"></section>
 <script src="workspace.js?v=manual-score-44"></script>
 <script src="saved-scores-core.js?v=summary-lifecycle-40"></script>
-<script src="saved-scores.js?v=unified-recycle-43"></script>
+<script src="saved-scores.js?v=detail-export-46"></script>
 <script src="roster-navigation.js?v=return-layout-24"></script>
 <script src="admin-tools.js?v=unified-recycle-43"></script>
 <script>document.getElementById("loginAccountPwd").addEventListener("keydown",function(e){if(e.key==="Enter")tryLogin();});</script>
